@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 2 的带本地 P1 ROM 可交付状态：用户本地 `data/tama.zip` 中的 `tama.bin` 已匹配 MAME `tama` / P1 World，已生成 ignored 的 `data/rom.h`，带 ROM 固件已编译并烧录到 M5StickS3。串口启动日志确认 `tamalib: initialized with local ROM`。
+项目已完成阶段 2 的带本地 P1 ROM 可交付状态，并已烧录防闪烁渲染修正版：带 ROM 固件启动成功，P1 界面已从每帧全屏清屏重绘改为局部刷新。串口确认 `tamalib: initialized with local ROM`，用户实机确认插 USB 测试时已不再闪屏。
 
 已完成：
 
@@ -34,9 +34,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 阶段 2：带 P1 ROM 实机验证 |
-| 状态 | 已完成到可交付状态 |
-| 验收标准 | `data/tama.zip` 不提交；从 zip 内 `tama.bin` 生成 ignored 的 `data/rom.h`；带 ROM 固件编译并烧录；串口显示 TamaLIB 已初始化；屏幕进入 P1 界面；A/B/C 输入路径保持 `key1`/`key2`/组合键映射 |
+| 任务 | 阶段 2：P1 屏幕闪烁修正 |
+| 状态 | 已完成 |
+| 验收标准 | P1 渲染不再每帧全屏清屏；只更新变化像素和图标；带 ROM 固件编译并烧录；串口仍显示 TamaLIB 已初始化 |
 
 ## 里程碑进度
 
@@ -97,6 +97,11 @@
 | 2026-05-02 | 验证 | 带 ROM 固件 `platformio run` 编译通过，Flash 使用约 530645 bytes，RAM 使用约 23384 bytes | 本次提交 |
 | 2026-05-02 | 验证 | 带 ROM 固件成功烧录到 `COM4`，esptool 确认 ESP32-S3-PICO-1、8MB Flash、8MB PSRAM | 本次提交 |
 | 2026-05-02 | 验证 | 串口软复位后确认启动日志：`tamalib: initialized with local ROM` 和 `boot ok: M5StickS3 phase2-tamalib-001` | 本次提交 |
+| 2026-05-02 | 发现 | 插 USB 测试时屏幕持续闪烁，定位为 P1 渲染路径 30fps 全屏 `fillScreen` 重画 | 本次提交 |
+| 2026-05-02 | 修正 | P1 渲染改为局部刷新：启动时绘制静态框架，运行时只更新变化的 32x16 像素、icons 和状态栏 | 本次提交 |
+| 2026-05-02 | 验证 | 防闪烁修正版 `platformio run` 编译通过，Flash 使用约 531057 bytes，RAM 使用约 23904 bytes | 本次提交 |
+| 2026-05-02 | 验证 | 防闪烁修正版成功烧录到 `COM4`，串口软复位后仍确认 `tamalib: initialized with local ROM` | 本次提交 |
+| 2026-05-02 | 验收 | 用户实机确认插 USB 测试时屏幕已不再闪烁 | 本次提交 |
 
 ## 阶段 2 交付物
 
