@@ -1,9 +1,23 @@
 #include "audio.h"
 
+#include <Arduino.h>
 #include <M5Unified.h>
 
-void audioInit() {
-  M5.Speaker.setVolume(96);
+namespace {
+uint8_t g_volume = 96;
+}
+
+void audioInit(uint8_t volume) {
+  audioSetVolume(volume);
+}
+
+void audioSetVolume(uint8_t volume) {
+  g_volume = volume;
+  M5.Speaker.setVolume(g_volume);
+}
+
+uint8_t audioVolume() {
+  return g_volume;
 }
 
 void audioPlayBootTone() {
@@ -13,4 +27,3 @@ void audioPlayBootTone() {
 void audioPlayButtonTone() {
   M5.Speaker.tone(880.0f, 45);
 }
-

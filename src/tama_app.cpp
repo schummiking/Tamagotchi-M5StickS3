@@ -7,6 +7,7 @@
 
 #include "buttons.h"
 #include "display.h"
+#include "tama_storage.h"
 
 extern "C" {
 #include "hal.h"
@@ -130,6 +131,9 @@ void syncButtonsToTama() {
   setTamaButton(BTN_MIDDLE, (mask & kTamaButtonB) != 0);
   setTamaButton(BTN_RIGHT, (mask & kTamaButtonC) != 0);
   g_last_button_mask = mask;
+  if (g_running) {
+    tamaStorageMarkDirty();
+  }
 }
 
 int halHandler() {
@@ -160,6 +164,7 @@ void renderTamaFrame() {
 
 void tamaAppInit() {
   buttonsSetFeedbackEnabled(false);
+  tamaStorageInit();
 
 #if M5STICKS3_HAS_LOCAL_ROM
   static_assert((sizeof(kTamaRom) / sizeof(kTamaRom[0])) >= 8192,
@@ -172,6 +177,9 @@ void tamaAppInit() {
     g_running = true;
     g_init_failed = false;
     Serial.println("tamalib: initialized with local ROM");
+    if (!tamaStorageRestore()) {
+      tamaStorageMarkDirty();
+    }
     renderTamaFrame();
   } else {
     g_running = false;
@@ -212,6 +220,8 @@ void tamaAppUpdate(const ImuSample& imu) {
     g_last_frame_ms = now_ms;
     renderTamaFrame();
   }
+
+  tamaStorageUpdate(g_running, buttonsIsAnyPressed(), buttonsLastActivityAgeMs());
 }
 
 bool tamaAppHasRom() {

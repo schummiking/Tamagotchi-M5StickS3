@@ -114,10 +114,14 @@ void drawTamaStaticFrame(bool sound_on) {
 
 void displayInit() {
   M5.Display.setRotation(0);
-  M5.Display.setBrightness(128);
+  displaySetBrightness(128);
   M5.Display.fillScreen(kBlack);
   M5.Display.setTextSize(1);
   M5.Display.setTextColor(kWhite, kBlack);
+}
+
+void displaySetBrightness(uint8_t brightness) {
+  M5.Display.setBrightness(brightness);
 }
 
 void displayRender(const ImuSample& imu) {

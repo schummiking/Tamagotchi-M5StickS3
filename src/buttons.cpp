@@ -8,10 +8,14 @@
 namespace {
 ButtonEvent g_last_event = ButtonEvent::None;
 uint32_t g_last_event_ms = 0;
+uint32_t g_last_activity_ms = 0;
+uint32_t g_last_event_seq = 0;
 bool g_combo_latched = false;
 bool g_ignore_next_key1_click = false;
 bool g_ignore_next_key2_click = false;
 bool g_feedback_enabled = true;
+bool g_last_key1 = false;
+bool g_last_key2 = false;
 
 const char* eventName(ButtonEvent event) {
   switch (event) {
@@ -34,6 +38,8 @@ const char* eventName(ButtonEvent event) {
 void publish(ButtonEvent event) {
   g_last_event = event;
   g_last_event_ms = millis();
+  g_last_activity_ms = g_last_event_ms;
+  ++g_last_event_seq;
   Serial.printf("button event: %s\n", eventName(event));
   if (g_feedback_enabled) {
     audioPlayButtonTone();
@@ -44,15 +50,24 @@ void publish(ButtonEvent event) {
 void buttonsInit() {
   g_last_event = ButtonEvent::None;
   g_last_event_ms = 0;
+  g_last_activity_ms = millis();
+  g_last_event_seq = 0;
   g_combo_latched = false;
   g_ignore_next_key1_click = false;
   g_ignore_next_key2_click = false;
   g_feedback_enabled = true;
+  g_last_key1 = M5.BtnA.isPressed();
+  g_last_key2 = M5.BtnB.isPressed();
 }
 
 void buttonsUpdate() {
   const bool key1 = M5.BtnA.isPressed();
   const bool key2 = M5.BtnB.isPressed();
+  if (key1 != g_last_key1 || key2 != g_last_key2) {
+    g_last_activity_ms = millis();
+    g_last_key1 = key1;
+    g_last_key2 = key2;
+  }
 
   if (key1 && key2 && !g_combo_latched) {
     g_combo_latched = true;
@@ -118,6 +133,10 @@ uint8_t buttonsTamaMask() {
   return mask;
 }
 
+bool buttonsIsAnyPressed() {
+  return M5.BtnA.isPressed() || M5.BtnB.isPressed();
+}
+
 ButtonEvent buttonsLastEvent() {
   return g_last_event;
 }
@@ -131,4 +150,12 @@ uint32_t buttonsLastEventAgeMs() {
     return UINT32_MAX;
   }
   return millis() - g_last_event_ms;
+}
+
+uint32_t buttonsLastActivityAgeMs() {
+  return millis() - g_last_activity_ms;
+}
+
+uint32_t buttonsLastEventSeq() {
+  return g_last_event_seq;
 }

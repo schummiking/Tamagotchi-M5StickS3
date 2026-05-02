@@ -109,7 +109,7 @@ IMU 互动后置：
 - 轻拍：触发呼唤/回应
 - 翻转：可选静音或睡眠
 
-## 当前阶段 2 实现
+## 当前阶段 3 实现
 
 已完成：
 
@@ -125,12 +125,20 @@ IMU 互动后置：
 - 通过 `tamalib_step()` 接入 Arduino `loop()`，避免阻塞后续 overlay/AI
 - 无 ROM 时显示 setup/debug 页面，不影响硬件验证
 - `platformio run` 编译通过，`COM4` 实机烧录通过
+- 使用本地 ignored P1 ROM 完成实机启动验证
+- P1 画面从全屏重绘改为局部刷新，解决插 USB 测试时的闪屏
+- `src/tama_storage.*` 用 LittleFS 保存/恢复 TamaLIB CPU/RAM/timer/interrupt 快照
+- `src/settings.*` 用 NVS 保存亮度、音量和 idle 阈值
+- `src/power_manager.*` 实现 idle 降亮、按键活动恢复亮度、低电压/睡眠前尽力保存
+- `key1` 长按循环亮度，`key2` 长按循环音量，短按/组合键仍作为原版 A/B/C 输入
+- M5Unified fallback board 固定为 `board_M5StickS3`，避免自动识别异常时影响 I2C/IMU
 
 限制：
 
-- 原版 P1 画面需要用户本地提供 ROM 后才能验证
-- 阶段 2 暂不包含存档
-- 阶段 2 暂不解析内部宠物状态
+- ROM 仍然只保存在用户本地 ignored 文件里，不随仓库分发
+- `power` 仍作为系统键，不作为应用输入；sleep 前保存通过统一 flush 入口预留给后续电源流程
+- 阶段 3 暂不解析内部宠物状态
+- 阶段 3 暂不包含 AI 对话，阶段 4 开始实现
 
 ## 阶段计划
 
@@ -169,6 +177,8 @@ IMU 互动后置：
 - 有 ROM 时可进入 TamaLIB step 主循环
 
 ### 阶段 3：存档、功耗和可玩性
+
+状态：已完成到可交付状态。
 
 目标：让设备日常可用。
 
@@ -246,3 +256,4 @@ IMU 互动后置：
   - `feat: add display hardware smoke test`
   - `feat: port tamalib lcd hal`
   - `fix: debounce button mapping`
+g`

@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已进入阶段 3：存档、功耗和日常可玩性。阶段 2 已完成带本地 P1 ROM 可交付状态：带 ROM 固件启动成功，P1 界面已从每帧全屏清屏重绘改为局部刷新。串口确认 `tamalib: initialized with local ROM`，用户实机确认插 USB 测试时已不再闪屏。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。串口确认 `storage: restored 648 bytes`、`boot ok: M5StickS3 phase3-storage-power-001` 和 `power: display idle brightness`。
 
 已完成：
 
@@ -14,12 +14,13 @@
 - 明确存档策略：TamaLIB 状态用 LittleFS，配置用 NVS
 - 完成阶段 1：屏幕、按钮、喇叭、IMU 实机验证
 - 完成阶段 2：TamaLIB submodule、HAL、ROM 本地生成入口、无 ROM 启动页
+- 完成阶段 3：LittleFS 存档/恢复、NVS 亮度/音量配置、idle 降亮和低电压/睡眠前强制保存入口
 
 下一步：
 
-- 实现 LittleFS 存档保存/恢复
-- 加入基础亮度/音量配置
-- 开始 idle 降刷新/降亮度策略，避免影响手动操作
+- 进入阶段 4：Gemini 文字对话
+- 准备 Wi-Fi/API Key 的本地配置入口，继续保持 secrets 不提交
+- 设计 AI overlay 和结构化动作到 A/B/C 按键序列的桥接
 
 ## 进度维护规则
 
@@ -35,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 阶段 3：存档、功耗和可玩性 |
-| 状态 | 进行中 |
-| 验收标准 | LittleFS 能保存/恢复 TamaLIB 状态；音量/亮度配置可保存；空闲时降低刷新或亮度且不影响手动操作 |
+| 任务 | 阶段 4：Gemini 文字对话准备 |
+| 状态 | 未开始 |
+| 验收标准 | `key2` 长按可触发一次文本对话；回复显示在 overlay；Wi-Fi/API Key 不进入 git；AI 动作有冷却且不影响手动操作 |
 
 ## 里程碑进度
 
@@ -46,7 +47,7 @@
 | 阶段 0：项目基线 | 已完成 | 计划、进度、git 基线完成 |
 | 阶段 1：硬件验证 | 已完成 | 屏幕/按钮/喇叭/IMU 可用 |
 | 阶段 2：TamaLIB 移植 | 已完成到带本地 ROM 可交付状态 | TamaLIB 可编译、可烧录；ROM 本地接入；S3 HAL 已实现；本地 P1 ROM 固件启动成功 |
-| 阶段 3：存档和功耗 | 进行中 | 重启不丢档，基础省电可用 |
+| 阶段 3：存档和功耗 | 已完成到可交付状态 | 重启可恢复 LittleFS 存档；亮度/音量 NVS 持久化；空闲降亮；低电压/睡眠前尽力保存 |
 | 阶段 4：Gemini 文字对话 | 未开始 | `key2` 长按触发 AI 对话并显示 overlay |
 | 阶段 5：语音/小智参考 | 未开始 | 按键录音、云端处理、端侧播放 |
 | 阶段 6：可选扩展 | 未开始 | Buddy/日记/自定义角色等 |
@@ -68,6 +69,10 @@
 | 2026-05-02 | 无 ROM 时也必须可编译可启动 | 让仓库保持可交付，同时不分发 ROM |
 | 2026-05-02 | 首轮 ROM 验证优先使用 MAME `tama` / P1 World | 与当前 3 键输入、E0C6S46/P1 目标和社区参考最匹配 |
 | 2026-05-02 | MAME P1/P2 ROM 应按 16-bit big-endian word 转换，并补零到 8192 words | TamaTool 说明和源码均显示每条 12-bit 指令存为 16-bit big-endian；12288-byte P1/P2 文件是 6144 words，不是 packed12 |
+| 2026-05-02 | TamaLIB 存档写入采用 idle/dirty 策略 | 只在状态变化后且玩家松手空闲时写入，降低 flash 写入频率 |
+| 2026-05-02 | 亮度/音量配置使用 NVS | 配置项小而稳定，适合 Preferences/NVS，和 LittleFS 存档职责分离 |
+| 2026-05-02 | 阶段 3 不拦截 `power` 键 | StickS3 的 `power` 是系统键，继续避免把它纳入应用输入；sleep 前保存先通过统一保存入口给后续电源流程复用 |
+| 2026-05-02 | M5Unified 初始化固定 StickS3 fallback board | 避免自动识别偶发读到异常缓存时影响 I2C 引脚、IMU 或显示 |
 
 ## 进度日志
 
@@ -103,7 +108,16 @@
 | 2026-05-02 | 验证 | 防闪烁修正版 `platformio run` 编译通过，Flash 使用约 531057 bytes，RAM 使用约 23904 bytes | 本次提交 |
 | 2026-05-02 | 验证 | 防闪烁修正版成功烧录到 `COM4`，串口软复位后仍确认 `tamalib: initialized with local ROM` | 本次提交 |
 | 2026-05-02 | 验收 | 用户实机确认插 USB 测试时屏幕已不再闪烁 | 本次提交 |
-| 2026-05-02 | 开发 | 开始阶段 3：LittleFS 存档、基础亮度/音量、功耗和可玩性打磨 | 待提交 |
+| 2026-05-02 | 开发 | 开始阶段 3 实现：LittleFS 存档/恢复、NVS 音量亮度配置、idle 降亮度 | 本次提交 |
+| 2026-05-02 | 开发 | 新增 `src/tama_storage.*`，保存 CPU 寄存器、timer、interrupts 和 TamaLIB memory，启动后校验并恢复快照 | 本次提交 |
+| 2026-05-02 | 开发 | 新增 `src/settings.*`，用 Preferences/NVS 持久化 active brightness、idle brightness、volume 和 idle dim 阈值 | 本次提交 |
+| 2026-05-02 | 开发 | 新增 `src/power_manager.*`，空闲 30 秒降亮，按键活动后恢复亮度，低电压/睡眠前尽力保存 TamaLIB 状态 | 本次提交 |
+| 2026-05-02 | 开发 | `key1` 长按循环亮度，`key2` 长按循环音量；`key1`/`key2`/组合键仍映射原版 A/B/C | 本次提交 |
+| 2026-05-02 | 修正 | `M5.begin()` 改为带配置初始化，并将 fallback board 固定为 `board_M5StickS3` | 本次提交 |
+| 2026-05-02 | 验证 | 阶段 3 固件 `platformio run` 编译通过，Flash 使用约 587797 bytes，RAM 使用约 24304 bytes | 本次提交 |
+| 2026-05-02 | 验证 | 阶段 3 固件成功烧录到 `COM4`，esptool 确认 ESP32-S3-PICO-1、8MB Flash、8MB PSRAM | 本次提交 |
+| 2026-05-02 | 验证 | 串口复位后确认 `settings: brightness=128 idle=32 volume=96`、`storage: LittleFS mounted`、`storage: restored 648 bytes` | 本次提交 |
+| 2026-05-02 | 验证 | 空闲约 30 秒后串口确认 `power: display idle brightness`，阶段 3 功耗策略闭环 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -117,45 +131,49 @@
 
 ## 下一步详情
 
-### 本地 ROM 验证
+### 阶段 3 交付物
 
-当前本地已存在并已使用：
+- `src/tama_storage.*`：LittleFS 存档/恢复，保存 TamaLIB CPU/RAM/timer/interruption 快照
+- `src/settings.*`：NVS 亮度、音量、idle 阈值配置
+- `src/power_manager.*`：idle 降亮、按键唤醒、低电压/睡眠前保存入口
+- `src/main.cpp`：接入设置快捷键和功耗更新
+- `src/tama_app.cpp`：接入存档恢复、输入后 dirty 标记和 idle 保存
+- `include/pins.h`：固件版本更新为 `phase3-storage-power-001`
 
-- `data/tama.zip`：用户本地提供，ignored，不提交
-- `data/tama.bin`：从 zip 提取，ignored，不提交
-- `data/rom.h`：生成文件，ignored，不提交
+本地 ROM 仍然只存在于 ignored 文件中，不提交：
 
-预计操作：
+- `data/tama.zip`
+- `data/tama.bin`
+- `data/rom.h`
+
+阶段 3 实机验收：
 
 ```powershell
-python tools\rom_to_header.py path\to\local_rom.txt data\rom.h --format text
 .\.venv\Scripts\platformio.exe run
 .\.venv\Scripts\platformio.exe run --target upload
 ```
 
-注意：
+已确认：
 
-- P1/P2 的 MAME 文件常见大小是 12288 bytes，应使用 `--format words-be16`。
-- converter 已支持 6144 source words 自动补零到 8192 words。
-- 不要用 `packed12-be` 手动处理 MAME P1/P2 文件；12288 bytes 虽然数学上能被 packed12 解成 8192 words，但内容会错。
+- 启动日志出现 `tamalib: initialized with local ROM`
+- 启动日志出现 `storage: restored 648 bytes`
+- 启动日志出现 `boot ok: M5StickS3 phase3-storage-power-001`
+- 空闲约 30 秒后出现 `power: display idle brightness`
+- Flash/RAM 占用保持安全：约 17.6% Flash、7.4% RAM
 
-最小验收：
-
-- 屏幕从 ROM 准备页切换到 P1 LCD 画面
-- 可看到初始画面或蛋
-- `key1`、`key2`、`key1+key2` 能完成 A/B/C 操作
-- 原版蜂鸣器声音可播放
-
-### 阶段 3 预备
+### 阶段 4 预备
 
 预计文件：
 
-- `src/tama_storage.*`
-- `src/settings.*`
-- `src/power.*`
+- `src/network_config.*`
+- `src/ai_client.*`
+- `src/ai_overlay.*`
+- `src/ai_actions.*`
 
 最小验收：
 
-- 重启后可恢复 TamaLIB 状态
-- 音量/亮度可保存
-- 空闲时降低刷新/亮度，不影响手动操作
+- `include/secrets_local.h` 或 NVS 提供本地 Wi-Fi/API Key，不进入 git
+- 长按 `key2` 触发一次 Gemini 文字请求
+- 收到回复后显示在 P1 画面下方 overlay
+- AI 可选输出结构化动作，动作层把它转换为 A/B/C 按键序列
+- Wi-Fi 用完后关闭或进入低功耗状态
