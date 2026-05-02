@@ -18,6 +18,7 @@ include/secrets_local.h
 data/rom.h
 data/*.rom
 data/*.bin
+data/*.zip
 *.gba
 *.gb
 

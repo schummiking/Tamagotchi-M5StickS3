@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 2 的可交付代码状态，并已完成 ROM 本地接入准备：TamaLIB 已集成，S3 HAL 已接入屏幕、按钮、音频和时钟，本地 ROM 路径已建立。当前仓库不包含 ROM；没有 `data/rom.h` 时固件仍可编译、烧录、启动并显示 ROM 准备页。
+项目已完成阶段 2 的带本地 P1 ROM 可交付状态：用户本地 `data/tama.zip` 中的 `tama.bin` 已匹配 MAME `tama` / P1 World，已生成 ignored 的 `data/rom.h`，带 ROM 固件已编译并烧录到 M5StickS3。串口启动日志确认 `tamalib: initialized with local ROM`。
 
 已完成：
 
@@ -17,8 +17,8 @@
 
 下一步：
 
-- 准备本地 `data/rom.h` 后验证原版 P1 初始画面/蛋和 A/B/C 操作
 - 进入阶段 3：LittleFS 存档、基础音量/亮度、功耗和可玩性打磨
+- 用户侧可继续观察屏幕和物理操作：`key1`=A、`key2`=B、`key1+key2`=C
 
 ## 进度维护规则
 
@@ -34,9 +34,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | ROM 本地接入准备 |
-| 状态 | 已完成，等待用户本地提供 ROM 文件 |
-| 验收标准 | 不自动下载或提交 ROM；converter 可正确处理 MAME P1/P2 `words-be16` 12288-byte 文件并补零到 8192 words；无 ROM 默认固件仍可编译 |
+| 任务 | 阶段 2：带 P1 ROM 实机验证 |
+| 状态 | 已完成到可交付状态 |
+| 验收标准 | `data/tama.zip` 不提交；从 zip 内 `tama.bin` 生成 ignored 的 `data/rom.h`；带 ROM 固件编译并烧录；串口显示 TamaLIB 已初始化；屏幕进入 P1 界面；A/B/C 输入路径保持 `key1`/`key2`/组合键映射 |
 
 ## 里程碑进度
 
@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | 阶段 0：项目基线 | 已完成 | 计划、进度、git 基线完成 |
 | 阶段 1：硬件验证 | 已完成 | 屏幕/按钮/喇叭/IMU 可用 |
-| 阶段 2：TamaLIB 移植 | 已完成到可交付代码状态 | TamaLIB 可编译、可烧录；ROM 本地接入；S3 HAL 已实现 |
+| 阶段 2：TamaLIB 移植 | 已完成到带本地 ROM 可交付状态 | TamaLIB 可编译、可烧录；ROM 本地接入；S3 HAL 已实现；本地 P1 ROM 固件启动成功 |
 | 阶段 3：存档和功耗 | 未开始 | 重启不丢档，基础省电可用 |
 | 阶段 4：Gemini 文字对话 | 未开始 | `key2` 长按触发 AI 对话并显示 overlay |
 | 阶段 5：语音/小智参考 | 未开始 | 按键录音、云端处理、端侧播放 |
@@ -91,6 +91,12 @@
 | 2026-05-02 | 修正 | `tools/rom_to_header.py` 默认将 0x3000/0x4000 MAME 文件识别为 `words-be16`，并支持 6144 source words 自动补零到 8192 words | 本次提交 |
 | 2026-05-02 | 验证 | dummy 12288-byte P1 形状文件可通过 `auto` 转成 `data/rom.h`，前两条 word 正确读为 `0xFA2, 0xC87`，并可编译 | 本次提交 |
 | 2026-05-02 | 验证 | 删除测试 `data/rom.h` 后，无 ROM 默认固件再次 `platformio run` 编译通过 | 本次提交 |
+| 2026-05-02 | 验证 | 用户本地 `data/tama.zip` 已包含匹配首选 ROM 的 `tama.bin`：12288 bytes、CRC32 `5c864cb1`、SHA1 `4b4979cf92dc9d2fb6d7295a38f209f3da144f72` | 本次提交 |
+| 2026-05-02 | 保护 | `.gitignore` 增加 `data/*.zip`，避免用户本地 ROM 包进入 git | 本次提交 |
+| 2026-05-02 | 开发 | 从 `data/tama.zip` 提取 ignored 的 `data/tama.bin`，生成 ignored 的 `data/rom.h`：6144 source words padded to 8192 words | 本地文件，不提交 |
+| 2026-05-02 | 验证 | 带 ROM 固件 `platformio run` 编译通过，Flash 使用约 530645 bytes，RAM 使用约 23384 bytes | 本次提交 |
+| 2026-05-02 | 验证 | 带 ROM 固件成功烧录到 `COM4`，esptool 确认 ESP32-S3-PICO-1、8MB Flash、8MB PSRAM | 本次提交 |
+| 2026-05-02 | 验证 | 串口软复位后确认启动日志：`tamalib: initialized with local ROM` 和 `boot ok: M5StickS3 phase2-tamalib-001` | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -105,6 +111,12 @@
 ## 下一步详情
 
 ### 本地 ROM 验证
+
+当前本地已存在并已使用：
+
+- `data/tama.zip`：用户本地提供，ignored，不提交
+- `data/tama.bin`：从 zip 提取，ignored，不提交
+- `data/rom.h`：生成文件，ignored，不提交
 
 预计操作：
 
