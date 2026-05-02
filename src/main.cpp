@@ -6,10 +6,7 @@
 #include "display.h"
 #include "imu_smoke.h"
 #include "pins.h"
-
-namespace {
-uint32_t g_last_render_ms = 0;
-}
+#include "tama_app.h"
 
 void setup() {
   Serial.begin(115200);
@@ -21,10 +18,11 @@ void setup() {
   audioInit();
   buttonsInit();
   imuSmokeInit();
+  tamaAppInit();
 
-  Serial.printf("boot ok: %s %s\n", board::kName, board::kSmokeTestVersion);
+  Serial.printf("boot ok: %s %s\n", board::kName, board::kFirmwareVersion);
   audioPlayBootTone();
-  displayRender(imuSmokeSample());
+  tamaAppUpdate(imuSmokeSample());
 }
 
 void loop() {
@@ -32,11 +30,6 @@ void loop() {
   buttonsUpdate();
   imuSmokeUpdate();
 
-  if (millis() - g_last_render_ms >= 250 || buttonsLastEventAgeMs() < 300) {
-    g_last_render_ms = millis();
-    displayRender(imuSmokeSample());
-  }
-
-  delay(10);
+  tamaAppUpdate(imuSmokeSample());
+  delay(tamaAppIsRunning() ? 1 : 10);
 }
-

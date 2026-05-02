@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目处于阶段 1：硬件验证/工程骨架已完成，下一步进入阶段 2：TamaLIB 移植准备。
+项目已完成阶段 2 的可交付代码状态：TamaLIB 已集成，S3 HAL 已接入屏幕、按钮、音频和时钟，本地 ROM 路径已建立。当前仓库不包含 ROM；没有 `data/rom.h` 时固件仍可编译、烧录、启动并显示 ROM 准备页。
 
 已完成：
 
@@ -12,13 +12,13 @@
 - 明确路线：TamaLIB 原版核心优先，AI 作为 overlay/输入外挂层
 - 明确 AI 顺序：先 Gemini 3 Flash 文字交互，后小智/语音
 - 明确存档策略：TamaLIB 状态用 LittleFS，配置用 NVS
-- 明确进度维护方式：每次开发前后更新本文件，并用 git 提交
+- 完成阶段 1：屏幕、按钮、喇叭、IMU 实机验证
+- 完成阶段 2：TamaLIB submodule、HAL、ROM 本地生成入口、无 ROM 启动页
 
 下一步：
 
-- 引入 TamaLIB 源码
-- 梳理 HAL 接口和 ROM 本地放置方式
-- 准备不提交 ROM 的构建路径
+- 准备本地 `data/rom.h` 后验证原版 P1 初始画面/蛋和 A/B/C 操作
+- 进入阶段 3：LittleFS 存档、基础音量/亮度、功耗和可玩性打磨
 
 ## 进度维护规则
 
@@ -34,9 +34,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 阶段 1：M5StickS3 硬件 smoke test |
-| 状态 | 已完成 |
-| 验收标准 | 工程可编译；设备可烧录；串口输出 `boot ok`；屏幕/按钮/喇叭/IMU 基础验证可用 |
+| 任务 | 阶段 2：TamaLIB 移植 |
+| 状态 | 已完成到可交付代码状态 |
+| 验收标准 | TamaLIB 集成可编译；本地 ROM 文件可被构建系统加载但不提交；S3 HAL 接入屏幕、按钮、音频；无 ROM 时可启动并提示准备方式；有 ROM 时可进入 TamaLIB step 主循环 |
 
 ## 里程碑进度
 
@@ -44,9 +44,9 @@
 | --- | --- | --- |
 | 阶段 0：项目基线 | 已完成 | 计划、进度、git 基线完成 |
 | 阶段 1：硬件验证 | 已完成 | 屏幕/按钮/喇叭/IMU 可用 |
-| 阶段 2：TamaLIB 移植 | 未开始 | 原版拓麻歌子可玩 |
+| 阶段 2：TamaLIB 移植 | 已完成到可交付代码状态 | TamaLIB 可编译、可烧录；ROM 本地接入；S3 HAL 已实现 |
 | 阶段 3：存档和功耗 | 未开始 | 重启不丢档，基础省电可用 |
-| 阶段 4：Gemini 文字对话 | 未开始 | 双键触发 AI 对话并显示 overlay |
+| 阶段 4：Gemini 文字对话 | 未开始 | `key2` 长按触发 AI 对话并显示 overlay |
 | 阶段 5：语音/小智参考 | 未开始 | 按键录音、云端处理、端侧播放 |
 | 阶段 6：可选扩展 | 未开始 | Buddy/日记/自定义角色等 |
 
@@ -63,60 +63,68 @@
 | 2026-05-02 | ROM 不提交到 git | 避免版权和分发风险 |
 | 2026-05-02 | `power` 不作为游戏输入 | 实测短按也会触发系统级黑屏/重启，长按进下载模式、双击关机 |
 | 2026-05-02 | 统一按钮命名：`power`、`key1`、`key2` | 避免“左键/侧键/电源键”混用导致误操作 |
+| 2026-05-02 | 第二阶段使用 `tamalib_step()` 而不是阻塞式 `tamalib_mainloop()` | 保留 Arduino loop 给显示 overlay、AI、IMU 和后续功耗管理 |
+| 2026-05-02 | 无 ROM 时也必须可编译可启动 | 让仓库保持可交付，同时不分发 ROM |
 
 ## 进度日志
 
 | 日期 | 类型 | 内容 | Git |
 | --- | --- | --- | --- |
-| 2026-05-02 | 规划 | Kiro Opus 4.6 参与讨论并形成阶段方案 | 本次基线提交 |
-| 2026-05-02 | 文档 | 新增项目计划和进度维护规则 | 本次基线提交 |
-| 2026-05-02 | 版本 | 初始化 git 仓库并添加忽略规则 | 本次基线提交 |
-| 2026-05-02 | 开发 | 开始阶段 1：M5StickS3 硬件 smoke test | `f854205` |
+| 2026-05-02 | 规划 | Kiro Opus 4.6 参与讨论并形成阶段方案 | `6a6561a` |
+| 2026-05-02 | 文档 | 新增项目计划和进度维护规则 | `6a6561a` |
+| 2026-05-02 | 版本 | 初始化 git 仓库并添加忽略规则 | `6a6561a` |
 | 2026-05-02 | 开发 | 新增 PlatformIO/M5Unified smoke test 工程，覆盖屏幕、按钮、喇叭、IMU | `f854205` |
 | 2026-05-02 | 验证 | `platformio run` 编译通过 | `f854205` |
-| 2026-05-02 | 阻塞 | `COM3` 可识别但串口写入和 esptool 握手均超时，等待设备重新枚举/下载模式确认 | `2efab9d` |
 | 2026-05-02 | 验证 | StickS3 下载模式枚举为 `COM4`，esptool 成功识别 ESP32-S3-PICO-1、8MB Flash、8MB PSRAM | `2efab9d` |
 | 2026-05-02 | 验证 | smoke test 固件成功烧录到 `COM4` | `2efab9d` |
-| 2026-05-02 | 验证 | 短按 `power` 后从 flash 启动，串口输出 `boot ok: M5StickS3 phase1-smoke-001` 和 IMU 数据 | `2efab9d` |
-| 2026-05-02 | 发现 | 屏幕、按钮、声音都有反应，但长按 `power` 会进入下载模式 | `e5fb9b9` |
-| 2026-05-02 | 修正 | 根据 StickS3 标注图和 M5Unified API，曾尝试 `key1`=A、`key2`=B、`power` 短按=C | `e5fb9b9` |
-| 2026-05-02 | 文档 | 统一按钮口径为 `power`、`key1`（蓝色正面键）、`key2`（侧键） | `e5fb9b9` |
-| 2026-05-02 | 发现 | `power` 短按也不会产生 C，而是类似黑屏重启 | `a33f098` |
-| 2026-05-02 | 修正 | `power` 移出游戏输入，改为 `key1+key2`=C、`key2` 长按=AI、`key1` 长按=Menu | `a33f098` |
-| 2026-05-02 | 验证 | 安全映射版编译、烧录成功，并从 flash 启动输出 `boot ok` 和 IMU 数据 | `a33f098` |
-| 2026-05-02 | 验收 | `key1`、`key2`、`key1+key2`、`key1` 长按、`key2` 长按均已实机确认可用 | 本次验收提交 |
+| 2026-05-02 | 修正 | 根据 StickS3 实物与实测，统一按钮命名并确认 `power` 不作为游戏输入 | `e5fb9b9` / `a33f098` |
+| 2026-05-02 | 验收 | `key1`、`key2`、`key1+key2`、`key1` 长按、`key2` 长按均已实机确认可用 | `6e20ffa` |
+| 2026-05-02 | 开发 | 引入 TamaLIB submodule，并在 submodule 外提供 `lib/hal_types.h` | 本次提交 |
+| 2026-05-02 | 开发 | 新增 M5StickS3 TamaLIB HAL：LCD、icons、音频、时间戳、按钮桥接、日志 | 本次提交 |
+| 2026-05-02 | 开发 | 新增 `tools/rom_to_header.py` 和 `data/README.md`，建立本地 ROM 生成和 ignored 接入路径 | 本次提交 |
+| 2026-05-02 | 开发 | 主循环切换为 `tamalib_step()` 集成；无 ROM 时显示 ROM 准备页 | 本次提交 |
+| 2026-05-02 | 验证 | `platformio run` 编译通过，固件大小约 512901 bytes，RAM 使用约 7.1% | 本次提交 |
+| 2026-05-02 | 验证 | `platformio run --target upload` 成功烧录到 `COM4`，串口可见 IMU 数据持续输出 | 本次提交 |
+
+## 阶段 2 交付物
+
+- `.gitmodules` / `lib/tamalib`：TamaLIB submodule
+- `lib/hal_types.h`：TamaLIB 目标类型定义
+- `src/tama_app.*`：TamaLIB 应用桥接和 HAL
+- `src/display.*`：无 ROM setup 页面和 32x16 到 128x64 渲染
+- `src/buttons.*`：`key1`/`key2`/组合键到 A/B/C 的实时 mask
+- `data/README.md`：本地 ROM 放置说明
+- `tools/rom_to_header.py`：本地 ROM dump 转 `data/rom.h`
 
 ## 下一步详情
 
-### 建立工程骨架
+### 本地 ROM 验证
 
-预计文件：
+预计操作：
 
-- `platformio.ini`
-- `src/main.cpp`
-- `include/pins.h`
-- `src/display.*`
-- `src/buttons.*`
-- `src/audio.*`
+```powershell
+python tools\rom_to_header.py path\to\local_rom.txt data\rom.h --format text
+.\.venv\Scripts\platformio.exe run
+.\.venv\Scripts\platformio.exe run --target upload
+```
 
 最小验收：
 
-- 工程能编译：已完成
-- 设备可烧录：已完成，下载模式端口为 `COM4`
-- 串口输出 `boot ok`：已完成
-- 可以在没有 ROM 的情况下跑硬件 smoke test：已完成
+- 屏幕从 ROM 准备页切换到 P1 LCD 画面
+- 可看到初始画面或蛋
+- `key1`、`key2`、`key1+key2` 能完成 A/B/C 操作
+- 原版蜂鸣器声音可播放
 
-### 当前阻塞：COM3 写入超时
+### 阶段 3 预备
 
-现象：
+预计文件：
 
-- Windows 识别到 `USB VID:PID=303A:8120`，端口为 `COM3`
-- `platformio run` 编译成功
-- `platformio run --target upload --upload-port COM3` 在 esptool 连接阶段失败
-- 直接用 pyserial 向 `COM3` 写入 `hello` 也会 `SerialTimeoutException: Write timeout`
+- `src/tama_storage.*`
+- `src/settings.*`
+- `src/power.*`
 
-下一步操作：
+最小验收：
 
-- 该阻塞已解除：设备进入下载模式后枚举为 `COM4`，可正常烧录
-- 注意：普通应用/下载模式可能都显示 `VID_303A`，但下载模式 PID 为 `1001`
-- 后续烧录若失败，先让设备进入绿灯闪烁的下载模式，再使用 `COM4`
+- 重启后可恢复 TamaLIB 状态
+- 音量/亮度可保存
+- 空闲时降低刷新/亮度，不影响手动操作

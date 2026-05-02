@@ -11,6 +11,7 @@ uint32_t g_last_event_ms = 0;
 bool g_combo_latched = false;
 bool g_ignore_next_key1_click = false;
 bool g_ignore_next_key2_click = false;
+bool g_feedback_enabled = true;
 
 const char* eventName(ButtonEvent event) {
   switch (event) {
@@ -34,7 +35,9 @@ void publish(ButtonEvent event) {
   g_last_event = event;
   g_last_event_ms = millis();
   Serial.printf("button event: %s\n", eventName(event));
-  audioPlayButtonTone();
+  if (g_feedback_enabled) {
+    audioPlayButtonTone();
+  }
 }
 }  // namespace
 
@@ -44,6 +47,7 @@ void buttonsInit() {
   g_combo_latched = false;
   g_ignore_next_key1_click = false;
   g_ignore_next_key2_click = false;
+  g_feedback_enabled = true;
 }
 
 void buttonsUpdate() {
@@ -90,6 +94,28 @@ void buttonsUpdate() {
       publish(ButtonEvent::B);
     }
   }
+}
+
+void buttonsSetFeedbackEnabled(bool enabled) {
+  g_feedback_enabled = enabled;
+}
+
+uint8_t buttonsTamaMask() {
+  const bool key1 = M5.BtnA.isPressed();
+  const bool key2 = M5.BtnB.isPressed();
+
+  if (key1 && key2) {
+    return kTamaButtonC;
+  }
+
+  uint8_t mask = 0;
+  if (key1) {
+    mask |= kTamaButtonA;
+  }
+  if (key2) {
+    mask |= kTamaButtonB;
+  }
+  return mask;
 }
 
 ButtonEvent buttonsLastEvent() {
