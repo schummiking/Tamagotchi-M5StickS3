@@ -23,6 +23,31 @@
 
 - 集成轻，只需要 Wi-Fi + HTTPS + JSON
 - 不抢麦克风/I2S/界面主控权
+- 适合先验证“宠物能聊天、能触发动作”的体验# M5StickS3 桌面电子宠物项目计划
+
+更新时间：2026-05-02
+
+## 项目目标
+
+在 M5StickS3 上实现一个可随身/桌面使用的电子宠物。核心体验优先还原原版 Tamagotchi P1，后续叠加 AI 对话、IMU 互动、语音和可选 Buddy 模式。
+
+## 核心决策
+
+### 1. TamaLIB 是核心，AI 是外挂层
+
+使用 TamaLIB 跑原版 P1 ROM，保留进化、时间、隐藏角色和原版状态机。AI 层不直接修改 ROM 或内部状态，只做两件事：
+
+- 显示层：在游戏画面外显示对话气泡、日记、心情提示
+- 输入层：把 AI 意图转成玩家本来也能做的按键操作，例如喂食、玩耍、治疗、查看状态
+
+这样能保持原版游戏规则稳定，也方便后续逐步扩展。
+
+### 2. 先 Gemini 3 Flash，后小智/语音
+
+第一版 AI 交流选 Gemini 3 Flash API 的文字对话。理由：
+
+- 集成轻，只需要 Wi-Fi + HTTPS + JSON
+- 不抢麦克风/I2S/界面主控权
 - 适合先验证“宠物能聊天、能触发动作”的体验
 
 小智路线放到后期，主要参考它的音频采集、OPUS、流式 ASR/LLM/TTS 管线，不把完整小智固件作为主应用并入。M5StickS3 的主应用仍然是拓麻歌子。
@@ -82,11 +107,17 @@ M5StickS3 采用竖屏 135x240。
 
 | 操作 | 映射 |
 | --- | --- |
-| 原版 A | 左键短按 |
-| 原版 B | 右键短按 |
-| 原版 C | 左键长按 |
-| 唤起 AI | 双键同时按 |
-| 设置/模式菜单 | 右键长按 |
+| 原版 A | `key1` 短按，蓝色正面键 |
+| 原版 B | `key2` 短按，侧键 |
+| 原版 C | `power` 短按，电源/系统键 |
+| 唤起 AI | `key1` + `key2` 同时按 |
+| 设置/模式菜单 | `key2` 长按 |
+
+统一命名：
+
+- `power`：电源/系统键。只使用短按事件；不要用长按或双击，因为长按会进入绿灯闪烁的下载模式，双击会关机。
+- `key1`：蓝色正面键，GPIO11。
+- `key2`：侧键，GPIO12。
 
 IMU 互动后置：
 
@@ -230,5 +261,4 @@ IMU 互动后置：
   - `docs: add project plan and progress log`
   - `feat: add display hardware smoke test`
   - `feat: port tamalib lcd hal`
-  - `fix: debounce button long press`
-
+  - `fix: debounce button mapping`

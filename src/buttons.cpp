@@ -8,9 +8,9 @@
 namespace {
 ButtonEvent g_last_event = ButtonEvent::None;
 uint32_t g_last_event_ms = 0;
-bool g_left_long_reported = false;
-bool g_right_long_reported = false;
-bool g_combo_reported = false;
+bool g_combo_latched = false;
+bool g_ignore_next_key1_click = false;
+bool g_ignore_next_key2_click = false;
 
 const char* eventName(ButtonEvent event) {
   switch (event) {
@@ -41,50 +41,53 @@ void publish(ButtonEvent event) {
 void buttonsInit() {
   g_last_event = ButtonEvent::None;
   g_last_event_ms = 0;
-  g_left_long_reported = false;
-  g_right_long_reported = false;
-  g_combo_reported = false;
+  g_combo_latched = false;
+  g_ignore_next_key1_click = false;
+  g_ignore_next_key2_click = false;
 }
 
 void buttonsUpdate() {
-  const bool left = M5.BtnA.isPressed();
-  const bool right = M5.BtnB.isPressed();
+  const bool key1 = M5.BtnA.isPressed();
+  const bool key2 = M5.BtnB.isPressed();
 
-  if (left && right) {
-    if (!g_combo_reported) {
-      g_combo_reported = true;
-      publish(ButtonEvent::AiWake);
+  if (key1 && key2 && !g_combo_latched) {
+    g_combo_latched = true;
+    g_ignore_next_key1_click = true;
+    g_ignore_next_key2_click = true;
+    publish(ButtonEvent::AiWake);
+    return;
+  }
+
+  if (g_combo_latched) {
+    if (!key1 && !key2) {
+      g_combo_latched = false;
     }
     return;
   }
 
-  if (!left && !right) {
-    g_combo_reported = false;
-  }
-
-  if (M5.BtnA.wasPressed()) {
-    g_left_long_reported = false;
-  }
-  if (M5.BtnB.wasPressed()) {
-    g_right_long_reported = false;
-  }
-
-  if (left && !g_left_long_reported && M5.BtnA.pressedFor(600)) {
-    g_left_long_reported = true;
+  if (M5.BtnPWR.wasClicked()) {
     publish(ButtonEvent::C);
   }
 
-  if (right && !g_right_long_reported && M5.BtnB.pressedFor(1500)) {
-    g_right_long_reported = true;
+  if (M5.BtnB.wasHold()) {
+    g_ignore_next_key2_click = true;
     publish(ButtonEvent::Menu);
   }
 
-  if (M5.BtnA.wasReleased() && !g_left_long_reported) {
-    publish(ButtonEvent::A);
+  if (M5.BtnA.wasClicked()) {
+    if (g_ignore_next_key1_click) {
+      g_ignore_next_key1_click = false;
+    } else {
+      publish(ButtonEvent::A);
+    }
   }
 
-  if (M5.BtnB.wasReleased() && !g_right_long_reported) {
-    publish(ButtonEvent::B);
+  if (M5.BtnB.wasClicked()) {
+    if (g_ignore_next_key2_click) {
+      g_ignore_next_key2_click = false;
+    } else {
+      publish(ButtonEvent::B);
+    }
   }
 }
 
@@ -102,4 +105,3 @@ uint32_t buttonsLastEventAgeMs() {
   }
   return millis() - g_last_event_ms;
 }
-

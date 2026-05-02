@@ -61,14 +61,16 @@ void displayRender(const ImuSample& imu) {
 
   M5.Display.setTextColor(kWhite, kBlack);
   M5.Display.setCursor(4, 140);
-  M5.Display.print("A:L short  B:R short");
+  M5.Display.print("A:key1     B:key2");
   M5.Display.setCursor(4, 154);
-  M5.Display.print("C:L hold   AI:both");
+  M5.Display.print("C:power    AI:k1+k2");
+  M5.Display.setCursor(4, 168);
+  M5.Display.print("Menu:key2 hold");
 
-  M5.Display.setCursor(4, 176);
+  M5.Display.setCursor(4, 184);
   if (imu.valid) {
     M5.Display.printf("acc %5.2f %5.2f %5.2f", imu.ax, imu.ay, imu.az);
-    M5.Display.setCursor(4, 190);
+    M5.Display.setCursor(4, 198);
     M5.Display.printf("gyr %5.1f %5.1f %5.1f", imu.gx, imu.gy, imu.gz);
   } else {
     M5.Display.print("IMU waiting...");
@@ -76,6 +78,5 @@ void displayRender(const ImuSample& imu) {
 
   M5.Display.setTextColor(kGray, kBlack);
   M5.Display.setCursor(4, 222);
-  M5.Display.print("Serial: 115200 COM3");
+  M5.Display.print("Serial: 115200 COM4");
 }
-
