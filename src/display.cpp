@@ -63,9 +63,9 @@ void displayRender(const ImuSample& imu) {
   M5.Display.setCursor(4, 140);
   M5.Display.print("A:key1     B:key2");
   M5.Display.setCursor(4, 154);
-  M5.Display.print("C:power    AI:k1+k2");
+  M5.Display.print("C:key1+key2");
   M5.Display.setCursor(4, 168);
-  M5.Display.print("Menu:key2 hold");
+  M5.Display.print("Menu:k1h   AI:k2h");
 
   M5.Display.setCursor(4, 184);
   if (imu.valid) {

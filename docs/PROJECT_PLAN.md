@@ -109,13 +109,13 @@ M5StickS3 采用竖屏 135x240。
 | --- | --- |
 | 原版 A | `key1` 短按，蓝色正面键 |
 | 原版 B | `key2` 短按，侧键 |
-| 原版 C | `power` 短按，电源/系统键 |
-| 唤起 AI | `key1` + `key2` 同时按 |
-| 设置/模式菜单 | `key2` 长按 |
+| 原版 C | `key1` + `key2` 同时按 |
+| 唤起 AI | `key2` 长按 |
+| 设置/模式菜单 | `key1` 长按 |
 
 统一命名：
 
-- `power`：电源/系统键。只使用短按事件；不要用长按或双击，因为长按会进入绿灯闪烁的下载模式，双击会关机。
+- `power`：电源/系统键。不要作为游戏输入使用；实测短按会触发系统级黑屏/重启，长按会进入绿灯闪烁的下载模式，双击会关机。
 - `key1`：蓝色正面键，GPIO11。
 - `key2`：侧键，GPIO12。
 
@@ -262,3 +262,4 @@ IMU 互动后置：
   - `feat: add display hardware smoke test`
   - `feat: port tamalib lcd hal`
   - `fix: debounce button mapping`
+pping`

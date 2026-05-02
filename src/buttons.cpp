@@ -54,7 +54,7 @@ void buttonsUpdate() {
     g_combo_latched = true;
     g_ignore_next_key1_click = true;
     g_ignore_next_key2_click = true;
-    publish(ButtonEvent::AiWake);
+    publish(ButtonEvent::C);
     return;
   }
 
@@ -65,12 +65,13 @@ void buttonsUpdate() {
     return;
   }
 
-  if (M5.BtnPWR.wasClicked()) {
-    publish(ButtonEvent::C);
-  }
-
   if (M5.BtnB.wasHold()) {
     g_ignore_next_key2_click = true;
+    publish(ButtonEvent::AiWake);
+  }
+
+  if (M5.BtnA.wasHold()) {
+    g_ignore_next_key1_click = true;
     publish(ButtonEvent::Menu);
   }
 
