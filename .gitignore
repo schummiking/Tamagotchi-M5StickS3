@@ -1,5 +1,6 @@
 # Build output
 .pio/
+.venv/
 build/
 dist/
 *.elf
@@ -11,6 +12,7 @@ dist/
 secrets.*
 wifi.*
 api_keys.*
+include/secrets_local.h
 
 # ROM and generated binary assets that should not be committed
 data/rom.h

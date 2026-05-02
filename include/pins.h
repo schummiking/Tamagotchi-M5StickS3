@@ -1,0 +1,7 @@
+#pragma once
+
+namespace board {
+constexpr const char* kName = "M5StickS3";
+constexpr const char* kSmokeTestVersion = "phase1-smoke-001";
+}
+
