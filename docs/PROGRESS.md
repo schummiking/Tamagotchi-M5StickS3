@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 2 的可交付代码状态：TamaLIB 已集成，S3 HAL 已接入屏幕、按钮、音频和时钟，本地 ROM 路径已建立。当前仓库不包含 ROM；没有 `data/rom.h` 时固件仍可编译、烧录、启动并显示 ROM 准备页。
+项目已完成阶段 2 的可交付代码状态，并已完成 ROM 本地接入准备：TamaLIB 已集成，S3 HAL 已接入屏幕、按钮、音频和时钟，本地 ROM 路径已建立。当前仓库不包含 ROM；没有 `data/rom.h` 时固件仍可编译、烧录、启动并显示 ROM 准备页。
 
 已完成：
 
@@ -34,9 +34,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 阶段 2：TamaLIB 移植 |
-| 状态 | 已完成到可交付代码状态 |
-| 验收标准 | TamaLIB 集成可编译；本地 ROM 文件可被构建系统加载但不提交；S3 HAL 接入屏幕、按钮、音频；无 ROM 时可启动并提示准备方式；有 ROM 时可进入 TamaLIB step 主循环 |
+| 任务 | ROM 本地接入准备 |
+| 状态 | 已完成，等待用户本地提供 ROM 文件 |
+| 验收标准 | 不自动下载或提交 ROM；converter 可正确处理 MAME P1/P2 `words-be16` 12288-byte 文件并补零到 8192 words；无 ROM 默认固件仍可编译 |
 
 ## 里程碑进度
 
@@ -87,7 +87,10 @@
 | 2026-05-02 | 开发 | 主循环切换为 `tamalib_step()` 集成；无 ROM 时显示 ROM 准备页 | 本次提交 |
 | 2026-05-02 | 验证 | `platformio run` 编译通过，固件大小约 512901 bytes，RAM 使用约 7.1% | 本次提交 |
 | 2026-05-02 | 验证 | `platformio run --target upload` 成功烧录到 `COM4`，串口可见 IMU 数据持续输出 | 本次提交 |
-| 2026-05-02 | 调研 | 使用 Kiro CLI + `claude-opus-4.6` 复核 ROM 候选，确定首选 MAME `tama`，并发现 converter 需要支持 `words-be16` 6144→8192 padding | 待提交 |
+| 2026-05-02 | 调研 | 使用 Kiro CLI + `claude-opus-4.6` 复核 ROM 候选，确定首选 MAME `tama`，并发现 converter 需要支持 `words-be16` 6144→8192 padding | `8c16fe8` |
+| 2026-05-02 | 修正 | `tools/rom_to_header.py` 默认将 0x3000/0x4000 MAME 文件识别为 `words-be16`，并支持 6144 source words 自动补零到 8192 words | 本次提交 |
+| 2026-05-02 | 验证 | dummy 12288-byte P1 形状文件可通过 `auto` 转成 `data/rom.h`，前两条 word 正确读为 `0xFA2, 0xC87`，并可编译 | 本次提交 |
+| 2026-05-02 | 验证 | 删除测试 `data/rom.h` 后，无 ROM 默认固件再次 `platformio run` 编译通过 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -114,8 +117,8 @@ python tools\rom_to_header.py path\to\local_rom.txt data\rom.h --format text
 注意：
 
 - P1/P2 的 MAME 文件常见大小是 12288 bytes，应使用 `--format words-be16`。
-- 当前 converter 还需要增加 6144 word 自动补零到 8192 word 的逻辑后再做真实 ROM 验证。
-- 不要用 `packed12-be` 自动路径处理 MAME P1/P2 文件；12288 bytes 虽然数学上能被 packed12 解成 8192 words，但内容会错。
+- converter 已支持 6144 source words 自动补零到 8192 words。
+- 不要用 `packed12-be` 手动处理 MAME P1/P2 文件；12288 bytes 虽然数学上能被 packed12 解成 8192 words，但内容会错。
 
 最小验收：
 

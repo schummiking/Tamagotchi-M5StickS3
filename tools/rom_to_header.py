@@ -3,7 +3,7 @@
 
 Supported formats:
 - text: hex 12-bit words separated by whitespace, comma, or braces
-- words-le16 / words-be16: 8192 16-bit words
+- words-le16 / words-be16: 16-bit words, padded to 8192 words when needed
 - packed12-be: two 12-bit words packed as b0, b1, b2 big-endian
 - packed12-le: two 12-bit words packed as b0, b1, b2 little-endian
 """
@@ -15,6 +15,7 @@ import re
 from pathlib import Path
 
 WORD_COUNT = 8192
+P1_P2_WORD_COUNT = 6144
 
 
 def parse_text(data: bytes) -> list[int]:
@@ -60,6 +61,8 @@ def parse_packed12_le(data: bytes) -> list[int]:
 def detect_format(data: bytes, source: Path) -> str:
     if source.suffix.lower() in {".txt", ".h", ".c", ".cpp"}:
         return "text"
+    if len(data) in {0x3000, 0x4000}:
+        return "words-be16"
     if len(data) == WORD_COUNT * 2:
         return "words-le16"
     if len(data) == WORD_COUNT * 3 // 2:
@@ -83,9 +86,20 @@ def parse_rom(data: bytes, source: Path, fmt: str) -> list[int]:
     raise ValueError(f"unsupported format: {fmt}")
 
 
+def normalize_word_count(words: list[int]) -> list[int]:
+    if len(words) == WORD_COUNT:
+        return words
+    if len(words) == P1_P2_WORD_COUNT:
+        return words + [0] * (WORD_COUNT - P1_P2_WORD_COUNT)
+    raise ValueError(
+        f"expected {WORD_COUNT} words, or {P1_P2_WORD_COUNT} words for P1/P2 padding, "
+        f"got {len(words)}"
+    )
+
+
 def write_header(words: list[int], output: Path) -> None:
-    if len(words) != WORD_COUNT:
-        raise ValueError(f"expected {WORD_COUNT} words, got {len(words)}")
+    source_word_count = len(words)
+    words = normalize_word_count(words)
     if any(word > 0x0FFF for word in words):
         raise ValueError("all words must be 12-bit values")
 
@@ -95,6 +109,7 @@ def write_header(words: list[int], output: Path) -> None:
         "",
         '#include "../lib/hal_types.h"',
         "",
+        f"constexpr unsigned int kTamaRomSourceWordCount = {source_word_count};",
         f"constexpr unsigned int kTamaRomWordCount = {WORD_COUNT};",
         "const u12_t kTamaRom[kTamaRomWordCount] = {",
     ]
@@ -120,7 +135,8 @@ def main() -> None:
     data = args.input.read_bytes()
     words = parse_rom(data, args.input, args.format)
     write_header(words, args.output)
-    print(f"wrote {args.output} with {len(words)} words")
+    final_words = len(normalize_word_count(words))
+    print(f"wrote {args.output} with {len(words)} source words padded to {final_words} words")
 
 
 if __name__ == "__main__":
