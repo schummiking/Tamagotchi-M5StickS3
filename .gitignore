@@ -1,0 +1,28 @@
+# Build output
+.pio/
+build/
+dist/
+*.elf
+*.map
+*.uf2
+
+# Secrets and local configuration
+.env
+secrets.*
+wifi.*
+api_keys.*
+
+# ROM and generated binary assets that should not be committed
+data/rom.h
+data/*.rom
+data/*.bin
+*.gba
+*.gb
+
+# Editor and OS noise
+.vscode/
+.idea/
+*.swp
+*.tmp
+Thumbs.db
+Desktop.ini
