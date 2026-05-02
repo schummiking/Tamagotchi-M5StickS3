@@ -65,6 +65,8 @@
 | 2026-05-02 | 统一按钮命名：`power`、`key1`、`key2` | 避免“左键/侧键/电源键”混用导致误操作 |
 | 2026-05-02 | 第二阶段使用 `tamalib_step()` 而不是阻塞式 `tamalib_mainloop()` | 保留 Arduino loop 给显示 overlay、AI、IMU 和后续功耗管理 |
 | 2026-05-02 | 无 ROM 时也必须可编译可启动 | 让仓库保持可交付，同时不分发 ROM |
+| 2026-05-02 | 首轮 ROM 验证优先使用 MAME `tama` / P1 World | 与当前 3 键输入、E0C6S46/P1 目标和社区参考最匹配 |
+| 2026-05-02 | MAME P1/P2 ROM 应按 16-bit big-endian word 转换，并补零到 8192 words | TamaTool 说明和源码均显示每条 12-bit 指令存为 16-bit big-endian；12288-byte P1/P2 文件是 6144 words，不是 packed12 |
 
 ## 进度日志
 
@@ -85,6 +87,7 @@
 | 2026-05-02 | 开发 | 主循环切换为 `tamalib_step()` 集成；无 ROM 时显示 ROM 准备页 | 本次提交 |
 | 2026-05-02 | 验证 | `platformio run` 编译通过，固件大小约 512901 bytes，RAM 使用约 7.1% | 本次提交 |
 | 2026-05-02 | 验证 | `platformio run --target upload` 成功烧录到 `COM4`，串口可见 IMU 数据持续输出 | 本次提交 |
+| 2026-05-02 | 调研 | 使用 Kiro CLI + `claude-opus-4.6` 复核 ROM 候选，确定首选 MAME `tama`，并发现 converter 需要支持 `words-be16` 6144→8192 padding | 待提交 |
 
 ## 阶段 2 交付物
 
@@ -107,6 +110,12 @@ python tools\rom_to_header.py path\to\local_rom.txt data\rom.h --format text
 .\.venv\Scripts\platformio.exe run
 .\.venv\Scripts\platformio.exe run --target upload
 ```
+
+注意：
+
+- P1/P2 的 MAME 文件常见大小是 12288 bytes，应使用 `--format words-be16`。
+- 当前 converter 还需要增加 6144 word 自动补零到 8192 word 的逻辑后再做真实 ROM 验证。
+- 不要用 `packed12-be` 自动路径处理 MAME P1/P2 文件；12288 bytes 虽然数学上能被 packed12 解成 8192 words，但内容会错。
 
 最小验收：
 
