@@ -6,13 +6,19 @@
 #include "audio.h"
 
 namespace {
+constexpr uint32_t kHoldThresholdMs = 650;
+constexpr uint32_t kTamaPulseMs = 90;
+
 ButtonEvent g_last_event = ButtonEvent::None;
 uint32_t g_last_event_ms = 0;
 uint32_t g_last_activity_ms = 0;
 uint32_t g_last_event_seq = 0;
+uint32_t g_key1_down_ms = 0;
+uint32_t g_key2_down_ms = 0;
+uint32_t g_tama_pulse_until_ms = 0;
+uint8_t g_tama_pulse_mask = 0;
+uint8_t g_tama_mask = 0;
 bool g_combo_latched = false;
-bool g_ignore_next_key1_click = false;
-bool g_ignore_next_key2_click = false;
 bool g_feedback_enabled = true;
 bool g_last_key1 = false;
 bool g_last_key2 = false;
@@ -45,6 +51,46 @@ void publish(ButtonEvent event) {
     audioPlayButtonTone();
   }
 }
+
+bool timeReached(uint32_t deadline_ms) {
+  return static_cast<int32_t>(millis() - deadline_ms) >= 0;
+}
+
+void emitTamaPulse(uint8_t mask) {
+  g_tama_pulse_mask = mask;
+  g_tama_pulse_until_ms = millis() + kTamaPulseMs;
+  g_tama_mask = mask;
+}
+
+void clearTamaPulse() {
+  g_tama_pulse_mask = 0;
+  g_tama_pulse_until_ms = 0;
+}
+
+void refreshTamaMask(bool key1, bool key2) {
+  if (g_combo_latched) {
+    g_tama_mask = (key1 && key2) ? kTamaButtonC : 0;
+    return;
+  }
+
+  if (g_tama_pulse_mask == 0 || timeReached(g_tama_pulse_until_ms)) {
+    clearTamaPulse();
+    g_tama_mask = 0;
+    return;
+  }
+
+  g_tama_mask = g_tama_pulse_mask;
+}
+
+void publishReleasedKey(ButtonEvent click_event, ButtonEvent hold_event, uint8_t tama_mask,
+                        uint32_t down_ms) {
+  if (millis() - down_ms >= kHoldThresholdMs) {
+    publish(hold_event);
+  } else {
+    publish(click_event);
+    emitTamaPulse(tama_mask);
+  }
+}
 }  // namespace
 
 void buttonsInit() {
@@ -52,63 +98,62 @@ void buttonsInit() {
   g_last_event_ms = 0;
   g_last_activity_ms = millis();
   g_last_event_seq = 0;
+  g_key1_down_ms = 0;
+  g_key2_down_ms = 0;
+  clearTamaPulse();
+  g_tama_mask = 0;
   g_combo_latched = false;
-  g_ignore_next_key1_click = false;
-  g_ignore_next_key2_click = false;
   g_feedback_enabled = true;
   g_last_key1 = M5.BtnA.isPressed();
   g_last_key2 = M5.BtnB.isPressed();
+  const uint32_t now = millis();
+  if (g_last_key1) {
+    g_key1_down_ms = now;
+  }
+  if (g_last_key2) {
+    g_key2_down_ms = now;
+  }
 }
 
 void buttonsUpdate() {
+  const uint32_t now = millis();
   const bool key1 = M5.BtnA.isPressed();
   const bool key2 = M5.BtnB.isPressed();
+
   if (key1 != g_last_key1 || key2 != g_last_key2) {
-    g_last_activity_ms = millis();
-    g_last_key1 = key1;
-    g_last_key2 = key2;
+    g_last_activity_ms = now;
+  }
+
+  if (key1 && !g_last_key1) {
+    g_key1_down_ms = now;
+  }
+  if (key2 && !g_last_key2) {
+    g_key2_down_ms = now;
   }
 
   if (key1 && key2 && !g_combo_latched) {
     g_combo_latched = true;
-    g_ignore_next_key1_click = true;
-    g_ignore_next_key2_click = true;
+    clearTamaPulse();
     publish(ButtonEvent::C);
-    return;
   }
 
   if (g_combo_latched) {
+    refreshTamaMask(key1, key2);
     if (!key1 && !key2) {
       g_combo_latched = false;
     }
-    return;
-  }
-
-  if (M5.BtnB.wasHold()) {
-    g_ignore_next_key2_click = true;
-    publish(ButtonEvent::AiWake);
-  }
-
-  if (M5.BtnA.wasHold()) {
-    g_ignore_next_key1_click = true;
-    publish(ButtonEvent::Menu);
-  }
-
-  if (M5.BtnA.wasClicked()) {
-    if (g_ignore_next_key1_click) {
-      g_ignore_next_key1_click = false;
-    } else {
-      publish(ButtonEvent::A);
+  } else {
+    if (!key1 && g_last_key1) {
+      publishReleasedKey(ButtonEvent::A, ButtonEvent::Menu, kTamaButtonA, g_key1_down_ms);
     }
+    if (!key2 && g_last_key2) {
+      publishReleasedKey(ButtonEvent::B, ButtonEvent::AiWake, kTamaButtonB, g_key2_down_ms);
+    }
+    refreshTamaMask(key1, key2);
   }
 
-  if (M5.BtnB.wasClicked()) {
-    if (g_ignore_next_key2_click) {
-      g_ignore_next_key2_click = false;
-    } else {
-      publish(ButtonEvent::B);
-    }
-  }
+  g_last_key1 = key1;
+  g_last_key2 = key2;
 }
 
 void buttonsSetFeedbackEnabled(bool enabled) {
@@ -116,21 +161,7 @@ void buttonsSetFeedbackEnabled(bool enabled) {
 }
 
 uint8_t buttonsTamaMask() {
-  const bool key1 = M5.BtnA.isPressed();
-  const bool key2 = M5.BtnB.isPressed();
-
-  if (key1 && key2) {
-    return kTamaButtonC;
-  }
-
-  uint8_t mask = 0;
-  if (key1) {
-    mask |= kTamaButtonA;
-  }
-  if (key2) {
-    mask |= kTamaButtonB;
-  }
-  return mask;
+  return g_tama_mask;
 }
 
 bool buttonsIsAnyPressed() {
