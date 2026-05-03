@@ -20,6 +20,7 @@ uint8_t g_tama_pulse_mask = 0;
 uint8_t g_tama_mask = 0;
 bool g_combo_latched = false;
 bool g_feedback_enabled = true;
+bool g_suppress_until_release = false;
 bool g_last_key1 = false;
 bool g_last_key2 = false;
 
@@ -104,6 +105,7 @@ void buttonsInit() {
   g_tama_mask = 0;
   g_combo_latched = false;
   g_feedback_enabled = true;
+  g_suppress_until_release = false;
   g_last_key1 = M5.BtnA.isPressed();
   g_last_key2 = M5.BtnB.isPressed();
   const uint32_t now = millis();
@@ -129,6 +131,17 @@ void buttonsUpdate() {
   }
   if (key2 && !g_last_key2) {
     g_key2_down_ms = now;
+  }
+
+  if (g_suppress_until_release) {
+    clearTamaPulse();
+    g_tama_mask = 0;
+    if (!key1 && !key2) {
+      g_suppress_until_release = false;
+    }
+    g_last_key1 = key1;
+    g_last_key2 = key2;
+    return;
   }
 
   if (key1 && key2 && !g_combo_latched) {
@@ -158,6 +171,12 @@ void buttonsUpdate() {
 
 void buttonsSetFeedbackEnabled(bool enabled) {
   g_feedback_enabled = enabled;
+}
+
+void buttonsSuppressUntilRelease() {
+  g_suppress_until_release = true;
+  clearTamaPulse();
+  g_tama_mask = 0;
 }
 
 uint8_t buttonsTamaMask() {

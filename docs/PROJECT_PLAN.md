@@ -127,17 +127,20 @@ IMU 互动后置：
 - `platformio run` 编译通过，`COM4` 实机烧录通过
 - 使用本地 ignored P1 ROM 完成实机启动验证
 - P1 画面从全屏重绘改为局部刷新，解决插 USB 测试时的闪屏
+- P1 关灯时的全亮 LCD 矩阵在显示层渲染为黑房间，避免整块绿色屏幕
 - `src/tama_storage.*` 用 LittleFS 保存/恢复 TamaLIB CPU/RAM/timer/interrupt 快照
 - `src/settings.*` 用 NVS 保存亮度、音量和 idle 阈值
-- `src/power_manager.*` 实现 idle 降亮、按键活动恢复亮度、低电压/睡眠前尽力保存
+- `src/power_manager.*` 实现 idle 降亮、暗屏夜间亮度、显示睡眠、按键活动恢复亮度、低电压/睡眠前尽力保存
 - `key1` 短按松开触发 A，`key2` 短按松开触发 B；按住一个键期间出现另一个键触发 C，避免组合键误触 A/B
 - `key1` 长按松开循环亮度，`key2` 长按松开循环音量
+- `key1+key2` 保持原版 C/退出，不复用为睡眠入口
 - M5Unified fallback board 固定为 `board_M5StickS3`，避免自动识别异常时影响 I2C/IMU
 
 限制：
 
 - ROM 仍然只保存在用户本地 ignored 文件里，不随仓库分发
 - `power` 仍作为系统键，不作为应用输入；sleep 前保存通过统一 flush 入口预留给后续电源流程
+- 当前低功耗路线是显示/背光睡眠，不是彻底关机；彻底关机后的时间补偿仍需单独设计
 - 阶段 3 暂不解析内部宠物状态
 - 阶段 3 暂不包含 AI 对话，阶段 4 开始实现
 
@@ -188,7 +191,7 @@ IMU 互动后置：
 - LittleFS 保存/恢复 TamaLIB 状态
 - idle 保存、sleep 前保存、低电压保存
 - 基础亮度/音量设置
-- 无操作降亮度或关屏
+- 无操作降亮度或关屏；宠物关灯后显示黑房间并可进入显示睡眠
 - 重启后恢复宠物状态
 
 验收标准：

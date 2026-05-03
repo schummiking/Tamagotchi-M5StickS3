@@ -21,6 +21,8 @@ constexpr int kTamaY = 44;
 constexpr int kTamaScale = 4;
 constexpr int kTamaWidth = 32;
 constexpr int kTamaHeight = 16;
+constexpr int kTamaPixelCount = kTamaWidth * kTamaHeight;
+constexpr int kTamaDarkRoomSlack = 2;
 constexpr int kTamaIconCount = 8;
 
 bool g_tama_frame_ready = false;
@@ -28,6 +30,16 @@ bool g_last_tama_pixels[kTamaWidth * kTamaHeight] = {};
 bool g_last_tama_icons[kTamaIconCount] = {};
 bool g_last_tama_sound = false;
 uint32_t g_last_tama_second = UINT32_MAX;
+
+bool isFilledDarkRoom(const bool* pixels) {
+  int lit_pixels = 0;
+  for (int i = 0; i < kTamaPixelCount; ++i) {
+    if (pixels[i]) {
+      ++lit_pixels;
+    }
+  }
+  return lit_pixels >= kTamaPixelCount - kTamaDarkRoomSlack;
+}
 
 void drawTamaViewportFrame() {
   constexpr int x = 4;
@@ -124,6 +136,11 @@ void displaySetBrightness(uint8_t brightness) {
   M5.Display.setBrightness(brightness);
 }
 
+void displayInvalidateTamaFrame() {
+  g_tama_frame_ready = false;
+  g_last_tama_second = UINT32_MAX;
+}
+
 void displayRender(const ImuSample& imu) {
   M5.Display.fillScreen(kBlack);
 
@@ -209,11 +226,12 @@ void displayRenderTama(const bool* pixels, const bool* icons, bool sound_on) {
     drawTamaButtonStatus();
   }
 
+  const bool dark_room = isFilledDarkRoom(pixels);
   M5.Display.startWrite();
   for (int row = 0; row < kTamaHeight; ++row) {
     for (int col = 0; col < kTamaWidth; ++col) {
       const int index = row * kTamaWidth + col;
-      const bool pixel_on = pixels[index];
+      const bool pixel_on = !dark_room && pixels[index];
       if (pixel_on != g_last_tama_pixels[index]) {
         const uint16_t color = pixel_on ? kTamaPixel : kBlack;
         M5.Display.fillRect(kTamaX + col * kTamaScale, kTamaY + row * kTamaScale,

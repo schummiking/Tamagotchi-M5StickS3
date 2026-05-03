@@ -18,6 +18,7 @@ constexpr uint8_t kTamaButtonC = 0x04;
 void buttonsInit();
 void buttonsUpdate();
 void buttonsSetFeedbackEnabled(bool enabled);
+void buttonsSuppressUntilRelease();
 uint8_t buttonsTamaMask();
 bool buttonsIsAnyPressed();
 ButtonEvent buttonsLastEvent();

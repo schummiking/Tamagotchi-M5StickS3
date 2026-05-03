@@ -64,6 +64,9 @@ void loop() {
   imuSmokeUpdate();
 
   tamaAppUpdate(imuSmokeSample());
-  powerManagerUpdate(buttonsIsAnyPressed(), buttonsLastActivityAgeMs());
+  if (powerManagerUpdate(buttonsIsAnyPressed(), buttonsLastActivityAgeMs(), tamaAppIsScreenDark())) {
+    buttonsSuppressUntilRelease();
+    displayInvalidateTamaFrame();
+  }
   delay(tamaAppIsRunning() ? 1 : 10);
 }

@@ -231,3 +231,20 @@ bool tamaAppHasRom() {
 bool tamaAppIsRunning() {
   return g_running;
 }
+
+bool tamaAppIsScreenDark() {
+  if (!g_running || g_sound_enabled) {
+    return false;
+  }
+
+  uint16_t active_pixels = 0;
+  for (uint8_t row = 0; row < kLcdHeight; ++row) {
+    for (uint8_t col = 0; col < kLcdWidth; ++col) {
+      if (g_pixels[row][col]) {
+        ++active_pixels;
+      }
+    }
+  }
+  constexpr uint16_t kPixelCount = kLcdWidth * kLcdHeight;
+  return active_pixels <= 2 || active_pixels >= kPixelCount - 2;
+}
