@@ -194,6 +194,7 @@ IMU 互动后置：
 - idle 保存、sleep 前保存、低电压保存
 - 基础亮度/音量设置
 - 无操作降亮度或关屏；宠物关灯后显示黑房间并可进入显示睡眠
+- 显示睡眠时关闭绿色系统 LED，按键唤醒后恢复休眠前状态
 - 竖屏下显示 FOOD、LIGHT、GAME、MED、CLEAN、STAT、DISC、CALL 菜单区
 - 顶部显示当前亮度和音量档位；长按 `key1` 调亮度，长按 `key2` 在 `0/32/96/160` 四档音量间切换
 - 重启后恢复宠物状态
@@ -264,4 +265,3 @@ IMU 互动后置：
   - `feat: add display hardware smoke test`
   - `feat: port tamalib lcd hal`
   - `fix: debounce button mapping`
-g`

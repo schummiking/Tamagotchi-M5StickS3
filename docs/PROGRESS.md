@@ -148,6 +148,12 @@
 | 2026-05-02 | 修正 | 状态栏音量显示改为 4 档，其中静音档用红色 X 标记 | 本次提交 |
 | 2026-05-02 | 验证 | 静音档修正版 `platformio run` 编译通过，Flash 使用约 592145 bytes，RAM 使用约 24320 bytes | 本次提交 |
 | 2026-05-02 | 验证 | 静音档修正版成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-volume-mute-001` | 本次提交 |
+| 2026-05-02 | 文档 | 开始处理休眠时绿色系统 LED 仍亮/闪的问题；目标为显示睡眠时熄灭、唤醒后恢复原状态 | 本次提交 |
+| 2026-05-02 | 修正 | 新增 `src/system_led.*`，通过 Stick S3 PI4IO E1 P7 控制 SYS_LEDG，休眠时写 HIGH 熄灭 | 本次提交 |
+| 2026-05-02 | 修正 | `power_manager` 在进入显示睡眠时熄灭系统 LED，在按键唤醒时恢复睡眠前 LED 输出状态 | 本次提交 |
+| 2026-05-02 | 验证 | 绿灯休眠修正版 `platformio run` 编译通过，Flash 使用约 592601 bytes，RAM 使用约 24320 bytes | 本次提交 |
+| 2026-05-02 | 验证 | 绿灯休眠修正版成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-led-sleep-001` | 本次提交 |
+| 2026-05-02 | 验证 | 75 秒串口监控确认可进入 `power: display idle brightness`；本轮未等待 10 分钟 idle display sleep，绿灯熄灭需实机睡眠肉眼确认 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -166,11 +172,12 @@
 - `src/tama_storage.*`：LittleFS 存档/恢复，保存 TamaLIB CPU/RAM/timer/interruption 快照
 - `src/settings.*`：NVS 亮度、音量、idle 阈值配置
 - `src/power_manager.*`：idle 降亮、暗屏夜间亮度、显示睡眠、按键唤醒、低电压/睡眠前保存入口
+- `src/system_led.*`：显示睡眠时关闭 Stick S3 绿色系统 LED，唤醒后恢复睡眠前状态
 - `src/display.cpp`：竖屏运行界面显示原版 8 菜单图标、选中项提示、亮度/音量档位状态栏
 - `src/main.cpp`：接入设置快捷键和功耗更新
 - `src/tama_app.cpp`：接入存档恢复、输入后 dirty 标记和 idle 保存
 - `src/audio.cpp`：音量 `0` 时停止 speaker，boot/按键音不发声
-- `include/pins.h`：固件版本更新为 `phase3-volume-mute-001`
+- `include/pins.h`：固件版本更新为 `phase3-led-sleep-001`
 
 阶段 3 当前操作：
 
@@ -202,13 +209,14 @@ Git push 卡点：
 
 - 启动日志出现 `tamalib: initialized with local ROM`
 - 启动日志出现 `storage: restored 648 bytes`
-- 启动日志出现 `boot ok: M5StickS3 phase3-volume-mute-001`
+- 启动日志出现 `boot ok: M5StickS3 phase3-led-sleep-001`
 - 空闲约 30 秒后出现 `power: display idle brightness`
 - P1 关灯后的全亮矩阵显示为黑房间，不再是整块绿色
 - `key1+key2` 仍然是原版 C/退出
 - P1 运行界面底部显示 8 个菜单图标和短标签，不再被按键说明占满
 - 顶部状态栏显示亮度/音量档位，不再显示瞬时蜂鸣状态；音量静音档显示红色 X
-- Flash/RAM 占用保持安全：约 17.6% Flash、7.4% RAM
+- 显示睡眠入口已接入绿色系统 LED 熄灭逻辑；正常 idle display sleep 阈值为 10 分钟，需实机放置到睡眠后肉眼确认 LED 是否完全熄灭
+- Flash/RAM 占用保持安全：约 17.7% Flash、7.4% RAM
 
 ### 阶段 4 预备
 

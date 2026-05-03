@@ -4,6 +4,7 @@
 
 #include "display.h"
 #include "settings.h"
+#include "system_led.h"
 #include "tama_storage.h"
 
 namespace {
@@ -54,6 +55,7 @@ void enterDisplaySleep(const char* reason) {
   g_dimmed = false;
   g_night_dimmed = false;
   displaySetBrightness(0);
+  systemLedEnterDisplaySleep();
   Serial.printf("power: display sleep (%s)\n", reason);
 }
 }  // namespace
@@ -65,6 +67,7 @@ void powerManagerInit() {
   g_low_battery_latched = false;
   g_last_battery_check_ms = 0;
   g_screen_dark_since_ms = 0;
+  systemLedInit();
   displaySetBrightness(settingsActiveBrightness());
 }
 
@@ -76,6 +79,7 @@ void powerManagerWake() {
   g_dimmed = false;
   g_night_dimmed = false;
   g_display_sleeping = false;
+  systemLedLeaveDisplaySleep();
   displaySetBrightness(settingsActiveBrightness());
   Serial.println("power: display active brightness");
 }
