@@ -14,6 +14,9 @@ void audioInit(uint8_t volume) {
 void audioSetVolume(uint8_t volume) {
   g_volume = volume;
   M5.Speaker.setVolume(g_volume);
+  if (g_volume == 0) {
+    M5.Speaker.stop();
+  }
 }
 
 uint8_t audioVolume() {
@@ -21,9 +24,15 @@ uint8_t audioVolume() {
 }
 
 void audioPlayBootTone() {
+  if (g_volume == 0) {
+    return;
+  }
   M5.Speaker.tone(440.0f, 120);
 }
 
 void audioPlayButtonTone() {
+  if (g_volume == 0) {
+    return;
+  }
   M5.Speaker.tone(880.0f, 45);
 }

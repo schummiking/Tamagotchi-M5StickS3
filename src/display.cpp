@@ -87,7 +87,7 @@ void drawControls(uint16_t color) {
   M5.Display.print("Menu:k1h   AI:k2h");
 }
 
-uint8_t settingLevel(uint8_t value, uint8_t low, uint8_t mid) {
+uint8_t threeStepLevel(uint8_t value, uint8_t low, uint8_t mid) {
   if (value <= low) {
     return 1;
   }
@@ -97,8 +97,21 @@ uint8_t settingLevel(uint8_t value, uint8_t low, uint8_t mid) {
   return 3;
 }
 
-void drawMeter(int x, int y, uint8_t level, uint16_t color) {
-  for (uint8_t slot = 0; slot < 3; ++slot) {
+uint8_t volumeLevel(uint8_t volume) {
+  if (volume == 0) {
+    return 0;
+  }
+  if (volume <= 32) {
+    return 1;
+  }
+  if (volume <= 96) {
+    return 2;
+  }
+  return 3;
+}
+
+void drawMeter(int x, int y, uint8_t level, uint8_t slots, uint16_t color) {
+  for (uint8_t slot = 0; slot < slots; ++slot) {
     const int bar_x = x + slot * 8;
     const int bar_h = 4 + slot * 2;
     const int bar_y = y + 8 - bar_h;
@@ -107,6 +120,22 @@ void drawMeter(int x, int y, uint8_t level, uint16_t color) {
       M5.Display.fillRect(bar_x + 1, bar_y + 1, 4, bar_h - 1, color);
     } else {
       M5.Display.fillRect(bar_x + 1, y + 1, 4, 6, kBlack);
+    }
+  }
+}
+
+void drawVolumeMeter(int x, int y, uint8_t level) {
+  for (uint8_t slot = 0; slot < 4; ++slot) {
+    const int bar_x = x + slot * 7;
+    M5.Display.drawRect(bar_x, y, 5, 8, kDarkGray);
+    M5.Display.fillRect(bar_x + 1, y + 1, 3, 6, kBlack);
+    if (level == 0 && slot == 0) {
+      M5.Display.drawLine(bar_x + 1, y + 2, bar_x + 3, y + 5, kRed);
+      M5.Display.drawLine(bar_x + 3, y + 2, bar_x + 1, y + 5, kRed);
+    } else if (level > 0 && slot > 0 && slot <= level) {
+      const int bar_h = 2 + slot * 2;
+      const int bar_y = y + 8 - bar_h;
+      M5.Display.fillRect(bar_x + 1, bar_y + 1, 3, bar_h - 1, kCyan);
     }
   }
 }
@@ -124,10 +153,10 @@ void drawTamaStatus() {
   M5.Display.setTextColor(kGray, kBlack);
   M5.Display.setCursor(4, 18);
   M5.Display.print("BRI");
-  drawMeter(28, 18, settingLevel(brightness, 64, 128), kYellow);
+  drawMeter(28, 18, threeStepLevel(brightness, 64, 128), 3, kYellow);
   M5.Display.setCursor(70, 18);
   M5.Display.print("VOL");
-  drawMeter(94, 18, settingLevel(volume, 32, 96), kCyan);
+  drawVolumeMeter(94, 18, volumeLevel(volume));
 }
 
 void drawCenteredText(const char* text, int x, int y, int width, uint16_t color) {

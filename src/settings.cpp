@@ -11,7 +11,7 @@ constexpr uint8_t kDefaultVolume = 96;
 constexpr uint32_t kDefaultIdleDimMs = 30000;
 
 constexpr uint8_t kBrightnessLevels[] = {64, 128, 200};
-constexpr uint8_t kVolumeLevels[] = {32, 96, 160};
+constexpr uint8_t kVolumeLevels[] = {0, 32, 96, 160};
 
 Preferences g_preferences;
 bool g_ready = false;

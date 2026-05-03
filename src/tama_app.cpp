@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "buttons.h"
+#include "audio.h"
 #include "display.h"
 #include "tama_storage.h"
 
@@ -103,14 +104,14 @@ void halSetLcdIcon(u8_t icon, bool_t val) {
 
 void halSetFrequency(u32_t freq_dhz) {
   g_frequency_dhz = freq_dhz;
-  if (g_sound_enabled) {
+  if (g_sound_enabled && audioVolume() > 0) {
     M5.Speaker.tone(static_cast<float>(g_frequency_dhz) / 10.0f);
   }
 }
 
 void halPlayFrequency(bool_t enabled) {
   g_sound_enabled = enabled != 0;
-  if (g_sound_enabled) {
+  if (g_sound_enabled && audioVolume() > 0) {
     M5.Speaker.tone(static_cast<float>(g_frequency_dhz) / 10.0f);
   } else {
     M5.Speaker.stop();
