@@ -7,6 +7,7 @@
 #include "buttons.h"
 #include "pins.h"
 #include "settings.h"
+#include "tama_frame.h"
 
 namespace {
 constexpr uint16_t kBlack = 0x0000;
@@ -21,10 +22,8 @@ constexpr uint16_t kDarkGray = 0x4208;
 constexpr int kTamaX = 4;
 constexpr int kTamaY = 44;
 constexpr int kTamaScale = 4;
-constexpr int kTamaWidth = 32;
-constexpr int kTamaHeight = 16;
-constexpr int kTamaPixelCount = kTamaWidth * kTamaHeight;
-constexpr int kTamaDarkRoomSlack = 2;
+constexpr int kTamaWidth = kTamaFrameWidth;
+constexpr int kTamaHeight = kTamaFrameHeight;
 constexpr int kTamaIconCount = 8;
 constexpr int kMenuX = 4;
 constexpr int kMenuY = 118;
@@ -52,16 +51,6 @@ constexpr const char* kMenuHints[kTamaIconCount] = {
     "Discipline: scold",
     "Attention call",
 };
-
-bool isFilledDarkRoom(const bool* pixels) {
-  int lit_pixels = 0;
-  for (int i = 0; i < kTamaPixelCount; ++i) {
-    if (pixels[i]) {
-      ++lit_pixels;
-    }
-  }
-  return lit_pixels >= kTamaPixelCount - kTamaDarkRoomSlack;
-}
 
 void drawTamaViewportFrame() {
   constexpr int x = 4;
@@ -449,12 +438,12 @@ void displayRenderTama(const bool* pixels, const bool* icons, bool) {
 
   drawTamaStatus();
 
-  const bool dark_room = isFilledDarkRoom(pixels);
+  const bool dark_room = tamaFrameLooksLikeDarkRoom(pixels);
   M5.Display.startWrite();
   for (int row = 0; row < kTamaHeight; ++row) {
     for (int col = 0; col < kTamaWidth; ++col) {
       const int index = row * kTamaWidth + col;
-      const bool pixel_on = !dark_room && pixels[index];
+      const bool pixel_on = dark_room ? !pixels[index] : pixels[index];
       if (pixel_on != g_last_tama_pixels[index]) {
         const uint16_t color = pixel_on ? kTamaPixel : kBlack;
         M5.Display.fillRect(kTamaX + col * kTamaScale, kTamaY + row * kTamaScale,
