@@ -128,6 +128,7 @@ IMU 互动后置：
 - 使用本地 ignored P1 ROM 完成实机启动验证
 - P1 画面从全屏重绘改为局部刷新，解决插 USB 测试时的闪屏
 - P1 关灯时的全亮 LCD 矩阵在显示层渲染为黑房间，避免整块绿色屏幕
+- 竖屏运行界面删除常驻按键说明，改为 8 个原版照顾菜单图标和短标签
 - `src/tama_storage.*` 用 LittleFS 保存/恢复 TamaLIB CPU/RAM/timer/interrupt 快照
 - `src/settings.*` 用 NVS 保存亮度、音量和 idle 阈值
 - `src/power_manager.*` 实现 idle 降亮、暗屏夜间亮度、显示睡眠、按键活动恢复亮度、低电压/睡眠前尽力保存
@@ -192,6 +193,7 @@ IMU 互动后置：
 - idle 保存、sleep 前保存、低电压保存
 - 基础亮度/音量设置
 - 无操作降亮度或关屏；宠物关灯后显示黑房间并可进入显示睡眠
+- 竖屏下显示 FOOD、LIGHT、GAME、MED、CLEAN、STAT、DISC、CALL 菜单区
 - 重启后恢复宠物状态
 
 验收标准：

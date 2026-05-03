@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <M5Unified.h>
+#include <string.h>
 
 #include "buttons.h"
 #include "pins.h"
@@ -24,12 +25,32 @@ constexpr int kTamaHeight = 16;
 constexpr int kTamaPixelCount = kTamaWidth * kTamaHeight;
 constexpr int kTamaDarkRoomSlack = 2;
 constexpr int kTamaIconCount = 8;
+constexpr int kMenuX = 4;
+constexpr int kMenuY = 118;
+constexpr int kMenuCols = 4;
+constexpr int kMenuCellW = 32;
+constexpr int kMenuCellH = 42;
 
 bool g_tama_frame_ready = false;
 bool g_last_tama_pixels[kTamaWidth * kTamaHeight] = {};
 bool g_last_tama_icons[kTamaIconCount] = {};
 bool g_last_tama_sound = false;
 uint32_t g_last_tama_second = UINT32_MAX;
+int8_t g_last_menu_hint = -2;
+
+constexpr const char* kMenuLabels[kTamaIconCount] = {
+    "FOOD", "LIGHT", "GAME", "MED", "CLEAN", "STAT", "DISC", "CALL"};
+
+constexpr const char* kMenuHints[kTamaIconCount] = {
+    "Feed: meal or snack",
+    "Light: room lamp",
+    "Game: play",
+    "Medicine: cure",
+    "Clean: duck flush",
+    "Status: hearts",
+    "Discipline: scold",
+    "Attention call",
+};
 
 bool isFilledDarkRoom(const bool* pixels) {
   int lit_pixels = 0;
@@ -79,11 +100,159 @@ void drawTamaStatus(bool sound_on) {
   M5.Display.printf("%lus  sound:%s", seconds, sound_on ? "on" : "off");
 }
 
-void drawTamaButtonStatus() {
-  M5.Display.fillRect(4, 132, 128, 10, kBlack);
-  M5.Display.setTextColor(kYellow, kBlack);
-  M5.Display.setCursor(4, 132);
-  M5.Display.printf("Button: %s", buttonsLastEventName());
+void drawCenteredText(const char* text, int x, int y, int width, uint16_t color) {
+  const int text_width = static_cast<int>(strlen(text)) * 6;
+  const int text_x = x + max(0, (width - text_width) / 2);
+  M5.Display.setTextColor(color, kBlack);
+  M5.Display.setCursor(text_x, y);
+  M5.Display.print(text);
+}
+
+void drawFoodIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawLine(cx - 8, y + 12, cx + 8, y + 12, color);
+  M5.Display.drawLine(cx - 6, y + 16, cx + 6, y + 16, color);
+  M5.Display.drawLine(cx - 8, y + 12, cx - 6, y + 16, color);
+  M5.Display.drawLine(cx + 8, y + 12, cx + 6, y + 16, color);
+  M5.Display.fillCircle(cx - 4, y + 9, 2, color);
+  M5.Display.fillCircle(cx, y + 8, 2, color);
+  M5.Display.fillCircle(cx + 4, y + 9, 2, color);
+}
+
+void drawLightIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawCircle(cx, y + 8, 5, color);
+  M5.Display.fillRect(cx - 3, y + 14, 7, 3, color);
+  M5.Display.drawLine(cx - 9, y + 8, cx - 7, y + 8, color);
+  M5.Display.drawLine(cx + 7, y + 8, cx + 9, y + 8, color);
+  M5.Display.drawLine(cx, y, cx, y + 2, color);
+  M5.Display.drawLine(cx - 6, y + 2, cx - 5, y + 4, color);
+  M5.Display.drawLine(cx + 6, y + 2, cx + 5, y + 4, color);
+}
+
+void drawGameIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawRect(cx - 9, y + 5, 18, 12, color);
+  M5.Display.drawLine(cx - 6, y + 11, cx - 2, y + 11, color);
+  M5.Display.drawLine(cx - 4, y + 9, cx - 4, y + 13, color);
+  M5.Display.fillCircle(cx + 4, y + 10, 1, color);
+  M5.Display.fillCircle(cx + 7, y + 13, 1, color);
+}
+
+void drawMedicineIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawRect(cx - 7, y + 4, 14, 14, color);
+  M5.Display.fillRect(cx - 2, y + 7, 5, 8, color);
+  M5.Display.fillRect(cx - 5, y + 10, 11, 3, color);
+}
+
+void drawCleanIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawCircle(cx + 3, y + 7, 4, color);
+  M5.Display.drawLine(cx + 7, y + 7, cx + 10, y + 6, color);
+  M5.Display.drawLine(cx + 7, y + 8, cx + 10, y + 9, color);
+  M5.Display.drawLine(cx - 8, y + 13, cx + 4, y + 13, color);
+  M5.Display.drawLine(cx - 6, y + 16, cx + 6, y + 16, color);
+  M5.Display.drawLine(cx - 8, y + 13, cx - 6, y + 16, color);
+  M5.Display.drawLine(cx + 4, y + 13, cx + 6, y + 16, color);
+  M5.Display.drawLine(cx - 10, y + 19, cx - 6, y + 19, color);
+  M5.Display.drawLine(cx - 2, y + 19, cx + 2, y + 19, color);
+  M5.Display.drawLine(cx + 6, y + 19, cx + 10, y + 19, color);
+}
+
+void drawStatusIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawRect(cx - 9, y + 4, 18, 14, color);
+  M5.Display.fillRect(cx - 6, y + 13, 3, 3, color);
+  M5.Display.fillRect(cx - 1, y + 10, 3, 6, color);
+  M5.Display.fillRect(cx + 4, y + 7, 3, 9, color);
+  M5.Display.drawLine(cx - 7, y + 7, cx - 5, y + 5, color);
+  M5.Display.drawLine(cx - 5, y + 5, cx - 3, y + 7, color);
+  M5.Display.drawLine(cx + 3, y + 7, cx + 5, y + 5, color);
+  M5.Display.drawLine(cx + 5, y + 5, cx + 7, y + 7, color);
+}
+
+void drawDisciplineIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawCircle(cx, y + 10, 8, color);
+  M5.Display.drawLine(cx - 5, y + 7, cx - 2, y + 8, color);
+  M5.Display.drawLine(cx + 2, y + 8, cx + 5, y + 7, color);
+  M5.Display.drawLine(cx - 4, y + 14, cx + 4, y + 14, color);
+  M5.Display.drawLine(cx + 9, y + 3, cx + 9, y + 10, color);
+  M5.Display.fillCircle(cx + 9, y + 14, 1, color);
+}
+
+void drawCallIcon(int cx, int y, uint16_t color) {
+  M5.Display.drawLine(cx - 7, y + 15, cx + 7, y + 15, color);
+  M5.Display.drawLine(cx - 5, y + 15, cx - 5, y + 8, color);
+  M5.Display.drawLine(cx + 5, y + 15, cx + 5, y + 8, color);
+  M5.Display.drawLine(cx - 5, y + 8, cx, y + 3, color);
+  M5.Display.drawLine(cx + 5, y + 8, cx, y + 3, color);
+  M5.Display.fillCircle(cx, y + 18, 1, color);
+  M5.Display.drawLine(cx - 10, y + 5, cx - 8, y + 3, color);
+  M5.Display.drawLine(cx + 8, y + 3, cx + 10, y + 5, color);
+}
+
+void drawMenuIcon(int icon, bool active) {
+  const int col = icon % kMenuCols;
+  const int row = icon / kMenuCols;
+  const int x = kMenuX + col * kMenuCellW;
+  const int y = kMenuY + row * kMenuCellH;
+  const uint16_t border = active ? kYellow : kDarkGray;
+  const uint16_t ink = active ? kWhite : kGray;
+  const uint16_t label = active ? kYellow : kGray;
+  const int cx = x + kMenuCellW / 2;
+
+  M5.Display.fillRect(x, y, kMenuCellW - 2, kMenuCellH - 3, kBlack);
+  M5.Display.drawRect(x, y, kMenuCellW - 2, kMenuCellH - 3, border);
+  switch (icon) {
+    case 0:
+      drawFoodIcon(cx, y + 4, ink);
+      break;
+    case 1:
+      drawLightIcon(cx, y + 4, ink);
+      break;
+    case 2:
+      drawGameIcon(cx, y + 4, ink);
+      break;
+    case 3:
+      drawMedicineIcon(cx, y + 4, ink);
+      break;
+    case 4:
+      drawCleanIcon(cx, y + 2, ink);
+      break;
+    case 5:
+      drawStatusIcon(cx, y + 4, ink);
+      break;
+    case 6:
+      drawDisciplineIcon(cx, y + 4, ink);
+      break;
+    case 7:
+      drawCallIcon(cx, y + 4, ink);
+      break;
+    default:
+      break;
+  }
+  drawCenteredText(kMenuLabels[icon], x, y + 28, kMenuCellW - 2, label);
+}
+
+int8_t selectedMenuIcon(const bool* icons) {
+  for (int icon = 0; icon < kTamaIconCount; ++icon) {
+    if (icons[icon]) {
+      return static_cast<int8_t>(icon);
+    }
+  }
+  return -1;
+}
+
+void drawMenuHint(const bool* icons, bool force) {
+  const int8_t selected = selectedMenuIcon(icons);
+  if (!force && selected == g_last_menu_hint) {
+    return;
+  }
+  g_last_menu_hint = selected;
+  M5.Display.fillRect(4, 204, 128, 20, kBlack);
+  M5.Display.setCursor(4, 207);
+  if (selected >= 0) {
+    M5.Display.setTextColor(selected == 7 ? kYellow : kWhite, kBlack);
+    M5.Display.print(kMenuHints[selected]);
+  } else {
+    M5.Display.setTextColor(kGray, kBlack);
+    M5.Display.print("Select a care icon");
+  }
 }
 
 void drawTamaStaticFrame(bool sound_on) {
@@ -101,21 +270,17 @@ void drawTamaStaticFrame(bool sound_on) {
   M5.Display.fillRect(kTamaX, kTamaY, kTamaWidth * kTamaScale, kTamaHeight * kTamaScale,
                       kBlack);
 
-  M5.Display.setTextColor(kGray, kBlack);
-  M5.Display.setCursor(4, 116);
-  M5.Display.print("icons");
   for (int icon = 0; icon < kTamaIconCount; ++icon) {
-    const int icon_x = 40 + icon * 11;
-    M5.Display.fillRect(icon_x, 116, 7, 7, kDarkGray);
+    drawMenuIcon(icon, false);
     g_last_tama_icons[icon] = false;
   }
-
-  drawTamaButtonStatus();
-  drawControls(kWhite);
+  g_last_menu_hint = -2;
+  bool empty_icons[kTamaIconCount] = {};
+  drawMenuHint(empty_icons, true);
 
   M5.Display.setTextColor(kGray, kBlack);
-  M5.Display.setCursor(4, 222);
-  M5.Display.print("TamaLIB local ROM");
+  M5.Display.setCursor(4, 226);
+  M5.Display.print("TamaLIB P1 local ROM");
 
   for (int i = 0; i < kTamaWidth * kTamaHeight; ++i) {
     g_last_tama_pixels[i] = false;
@@ -222,9 +387,6 @@ void displayRenderTama(const bool* pixels, const bool* icons, bool sound_on) {
   }
 
   drawTamaStatus(sound_on);
-  if (buttonsLastEventAgeMs() < 350) {
-    drawTamaButtonStatus();
-  }
 
   const bool dark_room = isFilledDarkRoom(pixels);
   M5.Display.startWrite();
@@ -240,14 +402,13 @@ void displayRenderTama(const bool* pixels, const bool* icons, bool sound_on) {
       }
     }
   }
+  M5.Display.endWrite();
 
   for (int icon = 0; icon < kTamaIconCount; ++icon) {
     if (icons[icon] != g_last_tama_icons[icon]) {
-      const int icon_x = 40 + icon * 11;
-      const uint16_t color = icons[icon] ? kYellow : kDarkGray;
-      M5.Display.fillRect(icon_x, 116, 7, 7, color);
+      drawMenuIcon(icon, icons[icon]);
       g_last_tama_icons[icon] = icons[icon];
     }
   }
-  M5.Display.endWrite();
+  drawMenuHint(icons, false);
 }
