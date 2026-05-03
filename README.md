@@ -1,84 +1,198 @@
-# M5StickS3 桌面电子宠物
+# Tamagotchi-M5StickS3
 
-## 项目管理
-- [项目计划](docs/PROJECT_PLAN.md)：记录架构决策、阶段路线和验收标准
-- [开发进度](docs/PROGRESS.md)：每次开发都更新当前状态、下一步和 git 提交记录
-- 版本维护：使用 git 管理；ROM、API Key、构建产物不提交到仓库
+中文 | [English](#english)
+
+M5StickS3 上的桌面/随身电子宠物项目。当前版本使用 TamaLIB 运行原版 Tamagotchi P1 ROM，并已经接入 M5StickS3 的屏幕、按钮、喇叭、LittleFS 存档、亮度/音量设置和基础功耗策略。
+
+> ROM 不随仓库分发。你需要准备自己的 Tamagotchi P1 ROM dump，并在本地生成 `data/rom.h`。
+
+## 当前状态
+
+- 阶段 1：硬件验证已完成，屏幕、`key1`、`key2`、喇叭、IMU 均可用。
+- 阶段 2：TamaLIB 已移植到 M5StickS3，本地 P1 ROM 固件可编译、烧录、启动。
+- 阶段 3：已完成 LittleFS 存档、NVS 配置、4 档音量含静音、亮度调节、空闲降亮、关灯黑房间、显示睡眠和绿色系统 LED 睡眠熄灭。
+- 当前固件版本：`phase3-combo-order-001`。
+- 下一阶段：Gemini 文字对话 overlay 和 AI 动作桥接。
 
 ## 硬件
-- M5StickS3 (ESP32-S3-PICO-1, 双核240MHz, 8MB Flash, 8MB PSRAM)
-- 1.14寸 LCD 135x240, 1W喇叭, MEMS麦克风, BMI270 IMU, BLE 5.0
-- 250mAh 电池, `power` + `key1` + `key2`, 红外收发
-- 官网 $21.50 + 运费 = $29，已下单 2026-04-20
 
-## 核心功能：拓麻歌子（TamaLIB 移植）
+- M5StickS3，ESP32-S3-PICO-1
+- 8MB Flash，8MB PSRAM
+- 1.14 inch 135x240 IPS LCD
+- 1W speaker，MEMS microphone，BMI270 IMU
+- 250mAh battery
+- `power` + `key1` + `key2`
 
-基于逆向工程的原版 Tamagotchi P1 ROM 模拟，不是自己写状态机。
+## 操作方式
 
-技术路线：
-- TamaLIB (github.com/jcrona/tamalib) — 硬件无关的 P1 模拟库，跑原版 ROM，100% 还原
-- 已有 ESP32 移植版 (github.com/anabolyc/Tamagotchi)，需适配 S3
-- TamaTool (github.com/jcrona/tamatool) — PC 端调试/ROM 编辑工具，可自定义角色图片
+| 操作 | 功能 |
+| --- | --- |
+| 短按 `key1` | 原版 A |
+| 短按 `key2` | 原版 B |
+| 按住 `key1` 后按 `key2` | 原版 C / 退出 |
+| 按住 `key2` 后按 `key1` | 原版 A+C / SET，用于时钟页改时间 |
+| 长按 `key1` 后松开 | 循环亮度档位 |
+| 长按 `key2` 后松开 | 循环音量档位，包含静音 |
+| `power` | 系统电源键，不作为游戏输入 |
 
-适配 S3 的工作：
-- 屏幕驱动：M5Unified/LovyanGFX，原版 32x16 → 128x64
-- 按钮映射：A=`key1`，B=`key2`，C=`key1` 后按 `key2`，A+C=`key2` 后按 `key1`；`power` 只作为系统键
-- 音频：原版蜂鸣器 → S3 的 1W I2S 喇叭
-- ROM：本地 `data/rom.h`，不提交到 git；无 ROM 时固件仍可启动
-- 存储：阶段 3 持久化到 LittleFS，断电不丢失
+## 本地 ROM
 
-优势：
-- 所有进化路线、隐藏角色、时间逻辑完整保留
-- 二次开发在完整游戏基础上叠加，不是从零搭半成品
-- ROM 可编辑，想换自定义角色用 TamaTool 改
+仓库不会提交 ROM、API Key、Wi-Fi 凭证或构建产物。
 
-## 二次开发方向
+推荐本地路径：
 
-在原版基础上扩展：
-- AI 对话：联网时可通过语音/文字跟宠物互动（Gemini Flash API）
-- IMU 互动：摇晃触发特殊事件（喂食、玩耍的快捷方式）
-- 自定义角色：用 TamaTool 替换 ROM 里的像素图
-- 音效增强：利用 1W 喇叭播放更丰富的音效
+```text
+data/tama.zip
+data/tama.bin
+data/rom.h
+```
 
-## 可选功能：CC Buddy 模式（待定）
+生成 `data/rom.h`：
 
-通过 BLE 连接 Claude Desktop/Cowork，作为 Claude Code 的物理伴侣。
+```powershell
+.\.venv\Scripts\platformio.exe run
+python tools\rom_to_header.py data\tama.bin data\rom.h
+```
 
-Anthropic 官方 claude-desktop-buddy 仓库的固件是给 StickC Plus 写的，需要适配 S3：
-- BLE 协议：Nordic UART Service，S3 的 BLE 5.0 兼容
-- 显示：ASCII species + 表情动画，屏幕分辨率一样，改动不大
-- 主要工作：引脚映射、BLE 库从 ESP32 切到 ESP32-S3 (NimBLE)
+`tools/rom_to_header.py` 支持 MAME P1/P2 常见的 16-bit big-endian word dump，并会把 6144 words 自动补齐到 TamaLIB 需要的 8192 words。
 
-集成思路：
-- 默认跑拓麻歌子模式
-- 检测到 BLE 配对请求时自动切换到 Buddy 模式
-- Buddy 模式下 Claude 的活动（编码、思考、等待确认）映射为宠物行为
-- 断开 BLE 后回到拓麻歌子
+## 构建与烧录
 
-开放问题：
-- Buddy 需要 Claude Desktop 开启开发者模式，日常是否方便？
-- 两个模式的状态是否互通？（比如 Buddy 模式下写代码算"喂食"？）
-- 是否值得投入时间适配，还是先专注拓麻歌子做好？
+```powershell
+.\.venv\Scripts\platformio.exe run
+.\.venv\Scripts\platformio.exe run --target upload
+```
 
-## 关键仓库
-- https://github.com/jcrona/tamalib — P1 模拟库（核心）
-- https://github.com/jcrona/tamatool — PC 调试/ROM 编辑
-- https://github.com/jcrona/mcugotchi — MCU 移植参考
-- https://github.com/anabolyc/Tamagotchi — ESP32 移植版（直接参考）
-- https://github.com/agg23/tamagotchi-disassembled — P1 ROM 反汇编
-- https://github.com/anthropics/claude-desktop-buddy — CC Buddy 固件
+串口调试命令：
 
-## 技术栈
-- Arduino + ESP-IDF (PlatformIO)
-- TamaLIB（C 库，硬件无关）
-- LovyanGFX 或 TFT_eSPI 驱动屏幕
-- NimBLE 处理 BLE（Buddy 模式）
-- NVS 存储宠物状态
+```text
+help
+dump
+save
+tap A|B|C|AC|AB|BC|ABC [ms]
+```
 
-## 里程碑
-1. 到手后验证硬件：屏幕、按钮、喇叭、IMU 基本驱动（已完成）
-2. 移植 TamaLIB 到 S3，建立本地 ROM 接入路径（已完成到可交付代码状态）
-3. 添加 LittleFS 存档、亮度/音量和功耗控制
-4. 添加 IMU 互动和音效增强
-5. （可选）适配 CC Buddy BLE 协议 + 双模式切换
-6. （可选）AI 对话扩展
+## 项目文档
+
+- [项目计划](docs/PROJECT_PLAN.md)：架构决策、阶段路线和验收标准
+- [开发进度](docs/PROGRESS.md)：每次开发的状态、验证记录和 git 记录
+
+## 技术路线
+
+- Arduino + ESP-IDF via PlatformIO
+- M5Unified / LovyanGFX
+- TamaLIB
+- LittleFS 保存 TamaLIB 状态
+- Preferences / NVS 保存亮度、音量和后续联网配置
+
+## 后续方向
+
+- Gemini 3 Flash 文字对话
+- AI overlay 与结构化动作到 A/B/C 按键序列的桥接
+- IMU 互动，例如摇晃、轻拍、翻转
+- 语音交互和小智路线参考
+- 可选 Claude Desktop Buddy / BLE 模式
+
+## 参考项目
+
+- [jcrona/tamalib](https://github.com/jcrona/tamalib)
+- [jcrona/tamatool](https://github.com/jcrona/tamatool)
+- [jcrona/mcugotchi](https://github.com/jcrona/mcugotchi)
+- [anabolyc/Tamagotchi](https://github.com/anabolyc/Tamagotchi)
+- [agg23/tamagotchi-disassembled](https://github.com/agg23/tamagotchi-disassembled)
+- [anthropics/claude-desktop-buddy](https://github.com/anthropics/claude-desktop-buddy)
+
+---
+
+## English
+
+A desktop / pocket virtual pet project for the M5StickS3. The current firmware runs an original Tamagotchi P1 ROM through TamaLIB and integrates the M5StickS3 display, buttons, speaker, LittleFS save data, brightness / volume settings, and basic power behavior.
+
+> The ROM is not distributed in this repository. You need to provide your own Tamagotchi P1 ROM dump and generate `data/rom.h` locally.
+
+## Current Status
+
+- Phase 1: Hardware validation is complete. Display, `key1`, `key2`, speaker, and IMU are working.
+- Phase 2: TamaLIB is ported to M5StickS3. The local P1 ROM firmware builds, flashes, and boots.
+- Phase 3: LittleFS save / restore, NVS settings, 4-level volume including mute, brightness control, idle dimming, dark-room rendering, display sleep, and green system LED sleep-off behavior are implemented.
+- Current firmware version: `phase3-combo-order-001`.
+- Next phase: Gemini text conversation overlay and AI action bridge.
+
+## Hardware
+
+- M5StickS3, ESP32-S3-PICO-1
+- 8MB Flash, 8MB PSRAM
+- 1.14 inch 135x240 IPS LCD
+- 1W speaker, MEMS microphone, BMI270 IMU
+- 250mAh battery
+- `power` + `key1` + `key2`
+
+## Controls
+
+| Action | Function |
+| --- | --- |
+| Short press `key1` | Original A |
+| Short press `key2` | Original B |
+| Hold `key1`, then press `key2` | Original C / back |
+| Hold `key2`, then press `key1` | Original A+C / SET, used for clock setting |
+| Hold and release `key1` | Cycle brightness |
+| Hold and release `key2` | Cycle volume, including mute |
+| `power` | System power key, not used as a game input |
+
+## Local ROM
+
+This repository does not commit ROM files, API keys, Wi-Fi credentials, or build outputs.
+
+Recommended local paths:
+
+```text
+data/tama.zip
+data/tama.bin
+data/rom.h
+```
+
+Generate `data/rom.h`:
+
+```powershell
+.\.venv\Scripts\platformio.exe run
+python tools\rom_to_header.py data\tama.bin data\rom.h
+```
+
+`tools/rom_to_header.py` supports common MAME P1/P2 16-bit big-endian word dumps and pads 6144 source words to the 8192 words expected by TamaLIB.
+
+## Build And Flash
+
+```powershell
+.\.venv\Scripts\platformio.exe run
+.\.venv\Scripts\platformio.exe run --target upload
+```
+
+Serial debug commands:
+
+```text
+help
+dump
+save
+tap A|B|C|AC|AB|BC|ABC [ms]
+```
+
+## Project Docs
+
+- [Project plan](docs/PROJECT_PLAN.md): architecture decisions, phase roadmap, and acceptance criteria
+- [Progress log](docs/PROGRESS.md): development status, verification records, and git history notes
+
+## Stack
+
+- Arduino + ESP-IDF via PlatformIO
+- M5Unified / LovyanGFX
+- TamaLIB
+- LittleFS for TamaLIB save data
+- Preferences / NVS for brightness, volume, and later network configuration
+
+## Roadmap
+
+- Gemini 3 Flash text conversation
+- AI overlay and structured action bridge to A/B/C button sequences
+- IMU interactions such as shake, tap, and flip
+- Voice interaction and XiaoZhi-inspired pipeline research
+- Optional Claude Desktop Buddy / BLE mode

@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。当前顺序组合键修正版已烧录到设备：`key1 -> key2` 保持 C/退出，`key2 -> key1` 映射原版 `A+C`/SET，用于设备端直接调时。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。当前顺序组合键修正版已烧录到设备：`key1 -> key2` 保持 C/退出，`key2 -> key1` 映射原版 `A+C`/SET，用于设备端直接调时。GitHub 远端已配置为 `schummiking/Tamagotchi-M5StickS3`，准备首次推送。
 
 已完成：
 
@@ -36,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 顺序组合键：区分 C 和 A+C |
-| 状态 | 已完成并烧录，等待用户实机按键确认 |
-| 验收标准 | 短按 `key1`/`key2` 仍是 A/B；`key1 -> key2` 触发 C/退出；`key2 -> key1` 触发原版 `A+C`/SET；组合键释放不残留单键误触；编译、烧录、串口启动验证通过 |
+| 任务 | GitHub 首次发布和中英文首页 README |
+| 状态 | README 已更新，远端已绑定，等待提交并推送 |
+| 验收标准 | README 首页包含中文和英文项目说明、操作方式、ROM 说明、构建烧录方式和路线图；`origin` 指向 `schummiking/Tamagotchi-M5StickS3`；本地提交后推送 `main` 到 GitHub |
 
 ## 里程碑进度
 
@@ -169,6 +169,8 @@
 | 2026-05-03 | 验证 | 顺序组合键修正版 `platformio run` 编译通过，Flash 使用约 594917 bytes，RAM 使用约 24416 bytes | 本次提交 |
 | 2026-05-03 | 验证 | 顺序组合键修正版成功烧录到 `COM4`，esptool 确认 ESP32-S3-PICO-1、8MB Flash、8MB PSRAM | 本次提交 |
 | 2026-05-03 | 验证 | USB 串口返回 `serial: commands: help, dump, save, tap A|B|C|AC|AB|BC|ABC [ms]`，确认应用固件正在运行 | 本次提交 |
+| 2026-05-03 | 文档 | README 改为 GitHub 首页用中英文双语版，补充当前状态、操作方式、ROM 不分发说明、构建烧录和路线图 | 本次提交 |
+| 2026-05-03 | 版本 | 远端 `origin` 配置为 `https://github.com/schummiking/Tamagotchi-M5StickS3.git`，准备首次推送 `main` | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -207,10 +209,10 @@
 - 长按 `key2` 后松开：循环音量档位 `0 -> 32 -> 96 -> 160 -> 0`
 - USB 串口调试：`tap A/B/C/AC [ms]` 注入原版按键，`dump` 输出 32x16 帧，`save` 手动保存
 
-Git push 卡点：
+Git push 状态：
 
-- 当前 `git remote -v` 为空，仓库没有远端地址
-- 需要先提供远端仓库 URL，之后才能执行 `git remote add origin <url>` 和 `git push`
+- 远端 `origin` 已配置为 `https://github.com/schummiking/Tamagotchi-M5StickS3.git`
+- 本轮 README 发布提交完成后推送 `main`
 
 本地 ROM 仍然只存在于 ignored 文件中，不提交：
 
