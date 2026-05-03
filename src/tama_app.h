@@ -7,3 +7,4 @@ void tamaAppUpdate(const ImuSample& imu);
 bool tamaAppHasRom();
 bool tamaAppIsRunning();
 bool tamaAppIsScreenDark();
+void tamaAppPrintDebugFrame();

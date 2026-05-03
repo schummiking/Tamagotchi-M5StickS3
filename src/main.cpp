@@ -7,6 +7,7 @@
 #include "imu_smoke.h"
 #include "pins.h"
 #include "power_manager.h"
+#include "serial_console.h"
 #include "settings.h"
 #include "tama_app.h"
 
@@ -60,6 +61,7 @@ void setup() {
 void loop() {
   M5.update();
   buttonsUpdate();
+  serialConsoleUpdate();
   handleSettingsShortcuts();
   imuSmokeUpdate();
 

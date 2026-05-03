@@ -19,6 +19,7 @@ void buttonsInit();
 void buttonsUpdate();
 void buttonsSetFeedbackEnabled(bool enabled);
 void buttonsSuppressUntilRelease();
+void buttonsInjectTamaMask(uint8_t mask, uint32_t duration_ms);
 uint8_t buttonsTamaMask();
 bool buttonsIsAnyPressed();
 ButtonEvent buttonsLastEvent();

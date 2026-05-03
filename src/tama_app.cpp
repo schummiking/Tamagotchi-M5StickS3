@@ -249,3 +249,19 @@ bool tamaAppIsScreenDark() {
   constexpr uint16_t kPixelCount = kLcdWidth * kLcdHeight;
   return active_pixels <= 2 || active_pixels >= kPixelCount - 2;
 }
+
+void tamaAppPrintDebugFrame() {
+  Serial.println("frame: begin");
+  for (uint8_t row = 0; row < kLcdHeight; ++row) {
+    for (uint8_t col = 0; col < kLcdWidth; ++col) {
+      Serial.print(g_pixels[row][col] ? '#' : '.');
+    }
+    Serial.println();
+  }
+  Serial.print("icons:");
+  for (uint8_t icon = 0; icon < kIconCount; ++icon) {
+    Serial.print(g_icons[icon] ? '1' : '0');
+  }
+  Serial.println();
+  Serial.println("frame: end");
+}

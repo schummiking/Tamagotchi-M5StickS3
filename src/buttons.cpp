@@ -18,6 +18,8 @@ uint32_t g_key2_down_ms = 0;
 uint32_t g_tama_pulse_until_ms = 0;
 uint8_t g_tama_pulse_mask = 0;
 uint8_t g_tama_mask = 0;
+uint8_t g_injected_mask = 0;
+uint32_t g_injected_until_ms = 0;
 bool g_combo_latched = false;
 bool g_feedback_enabled = true;
 bool g_suppress_until_release = false;
@@ -66,6 +68,13 @@ void emitTamaPulse(uint8_t mask) {
 void clearTamaPulse() {
   g_tama_pulse_mask = 0;
   g_tama_pulse_until_ms = 0;
+}
+
+void refreshInjectedMask() {
+  if (g_injected_mask != 0 && timeReached(g_injected_until_ms)) {
+    g_injected_mask = 0;
+    g_injected_until_ms = 0;
+  }
 }
 
 void refreshTamaMask(bool key1, bool key2) {
@@ -119,6 +128,8 @@ void buttonsInit() {
 
 void buttonsUpdate() {
   const uint32_t now = millis();
+  refreshInjectedMask();
+
   const bool key1 = M5.BtnA.isPressed();
   const bool key2 = M5.BtnB.isPressed();
 
@@ -179,12 +190,28 @@ void buttonsSuppressUntilRelease() {
   g_tama_mask = 0;
 }
 
+void buttonsInjectTamaMask(uint8_t mask, uint32_t duration_ms) {
+  if (mask == 0 || duration_ms == 0) {
+    g_injected_mask = 0;
+    g_injected_until_ms = 0;
+    return;
+  }
+  g_injected_mask = mask;
+  g_injected_until_ms = millis() + duration_ms;
+  g_last_activity_ms = millis();
+}
+
 uint8_t buttonsTamaMask() {
+  refreshInjectedMask();
+  if (g_injected_mask != 0) {
+    return g_injected_mask;
+  }
   return g_tama_mask;
 }
 
 bool buttonsIsAnyPressed() {
-  return M5.BtnA.isPressed() || M5.BtnB.isPressed();
+  refreshInjectedMask();
+  return g_injected_mask != 0 || M5.BtnA.isPressed() || M5.BtnB.isPressed();
 }
 
 ButtonEvent buttonsLastEvent() {

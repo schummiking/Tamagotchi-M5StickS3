@@ -154,6 +154,12 @@
 | 2026-05-02 | 验证 | 绿灯休眠修正版 `platformio run` 编译通过，Flash 使用约 592601 bytes，RAM 使用约 24320 bytes | 本次提交 |
 | 2026-05-02 | 验证 | 绿灯休眠修正版成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-led-sleep-001` | 本次提交 |
 | 2026-05-02 | 验证 | 75 秒串口监控确认可进入 `power: display idle brightness`；本轮未等待 10 分钟 idle display sleep，绿灯熄灭需实机睡眠肉眼确认 | 本次提交 |
+| 2026-05-02 | 文档 | 开始处理 USB 辅助校时；P1 改时钟需要在时钟页按原版 `A+C` 进入 `SET`，现有两键物理映射无法直接表达这个组合 | 本次提交 |
+| 2026-05-02 | 开发 | 新增 `src/serial_console.*`，支持 `tap A/B/C/AC`、`dump`、`save`，用于通过 USB 调试口发送原版按键组合和读取 32x16 帧 | 本次提交 |
+| 2026-05-02 | 开发 | `buttons` 新增短时注入的 Tama 按键 mask；`tama_app` 新增调试帧打印，便于后续自动化校时和问题复现 | 本次提交 |
+| 2026-05-02 | 验证 | USB 辅助校时版 `platformio run` 编译通过，Flash 使用约 594173 bytes，RAM 使用约 24408 bytes | 本次提交 |
+| 2026-05-02 | 验证 | USB 辅助校时版成功烧录到 `COM4`，固件版本为 `phase3-serial-clock-001` | 本次提交 |
+| 2026-05-02 | 校时 | 通过串口命令进入 P1 时钟 `SET`，在电脑时间 `22:03:00` 确认 ROM 时钟为 `10:03 PM` 并执行 `save` | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -173,11 +179,12 @@
 - `src/settings.*`：NVS 亮度、音量、idle 阈值配置
 - `src/power_manager.*`：idle 降亮、暗屏夜间亮度、显示睡眠、按键唤醒、低电压/睡眠前保存入口
 - `src/system_led.*`：显示睡眠时关闭 Stick S3 绿色系统 LED，唤醒后恢复睡眠前状态
+- `src/serial_console.*`：USB 调试命令，可注入原版 A/B/C/组合键、打印帧、手动保存，用于校时和调试
 - `src/display.cpp`：竖屏运行界面显示原版 8 菜单图标、选中项提示、亮度/音量档位状态栏
 - `src/main.cpp`：接入设置快捷键和功耗更新
 - `src/tama_app.cpp`：接入存档恢复、输入后 dirty 标记和 idle 保存
 - `src/audio.cpp`：音量 `0` 时停止 speaker，boot/按键音不发声
-- `include/pins.h`：固件版本更新为 `phase3-led-sleep-001`
+- `include/pins.h`：固件版本更新为 `phase3-serial-clock-001`
 
 阶段 3 当前操作：
 
@@ -186,6 +193,7 @@
 - 同时按 `key1+key2`：原版 C/退出
 - 长按 `key1` 后松开：循环亮度档位 `64 -> 128 -> 200 -> 64`
 - 长按 `key2` 后松开：循环音量档位 `0 -> 32 -> 96 -> 160 -> 0`
+- USB 串口调试：`tap A/B/C/AC [ms]` 注入原版按键，`dump` 输出 32x16 帧，`save` 手动保存
 
 Git push 卡点：
 
@@ -216,7 +224,8 @@ Git push 卡点：
 - P1 运行界面底部显示 8 个菜单图标和短标签，不再被按键说明占满
 - 顶部状态栏显示亮度/音量档位，不再显示瞬时蜂鸣状态；音量静音档显示红色 X
 - 显示睡眠入口已接入绿色系统 LED 熄灭逻辑；正常 idle display sleep 阈值为 10 分钟，需实机放置到睡眠后肉眼确认 LED 是否完全熄灭
-- Flash/RAM 占用保持安全：约 17.7% Flash、7.4% RAM
+- USB 辅助校时已验证：当前 ROM 时钟在 `2026-05-02 22:03:00 -05:00` 对齐到 `10:03 PM`
+- Flash/RAM 占用保持安全：约 17.8% Flash、7.4% RAM
 
 ### 阶段 4 预备
 
