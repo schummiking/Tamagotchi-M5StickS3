@@ -222,15 +222,22 @@ Git push 卡点：
 
 - 启动日志出现 `tamalib: initialized with local ROM`
 - 启动日志出现 `storage: restored 648 bytes`
-- 启动日志出现 `boot ok: M5StickS3 phase3-led-sleep-001`
+- 启动日志出现 `boot ok: M5StickS3 phase3-pm1-led-002`
 - 空闲约 30 秒后出现 `power: display idle brightness`
 - P1 关灯后的全亮矩阵显示为黑房间，不再是整块绿色
 - `key1+key2` 仍然是原版 C/退出
 - P1 运行界面底部显示 8 个菜单图标和短标签，不再被按键说明占满
 - 顶部状态栏显示亮度/音量档位，不再显示瞬时蜂鸣状态；音量静音档显示红色 X
-- 显示睡眠入口已接入绿色系统 LED 熄灭逻辑；正常 idle display sleep 阈值为 10 分钟，需实机放置到睡眠后肉眼确认 LED 是否完全熄灭
+- 显示睡眠入口已接入绿色状态 LED 熄灭逻辑；串口确认 StickS3 使用 PM1 后端，睡眠时出现 `system_led: sleep off (pm1)`，唤醒时出现 `system_led: restored (pm1)`
 - USB 辅助校时已验证：当前 ROM 时钟在 `2026-05-02 22:03:00 -05:00` 对齐到 `10:03 PM`
 - Flash/RAM 占用保持安全：约 17.8% Flash、7.4% RAM
+
+当前回滚排查结论：
+
+- Git 历史没有发生代码回滚；`7e85c75` 只引入串口校时/按键注入/版本号相关改动，没有改动黑房间渲染、夜间亮度、睡眠或音量逻辑。
+- 体感“回滚”的主因是关灯房间识别阈值过窄：睡觉打呼帧不是 512 像素全亮，而是大面积亮点夹杂动画空洞，旧逻辑因此没有触发黑房间反色和夜间睡眠链路。
+- 绿色 LED 另有独立问题：旧实现误用了 PI4IO `0x44`，当前 StickS3 原理图和 M5Unified 自动识别均表明状态灯接在 M5PM1 `0x6E` 的 `LED_EN_PP` 上；已改为 PM1 `PWR_CFG` bit4 控制。
+- 已烧录并验证 `phase3-pm1-led-002`：黑房间、夜间低亮度、显示睡眠、PM1 状态灯睡眠关闭和唤醒恢复均有串口证据。
 
 ### 阶段 4 预备
 
