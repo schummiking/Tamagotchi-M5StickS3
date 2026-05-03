@@ -12,7 +12,7 @@ M5StickS3 上的桌面/随身电子宠物项目。当前版本使用 TamaLIB 运
 - 阶段 2：TamaLIB 已移植到 M5StickS3，本地 P1 ROM 固件可编译、烧录、启动。
 - 阶段 3：已完成 LittleFS 存档、NVS 配置、4 档音量含静音、亮度调节、空闲降亮、关灯黑房间、显示睡眠和绿色系统 LED 睡眠熄灭。
 - 当前固件版本：`phase3-combo-order-001`。
-- 下一阶段：Gemini 文字对话 overlay 和 AI 动作桥接。
+- 下一阶段：在独立分支探索小智语音路线、可替换更强模型的接口，以及轻量 agent 能力。
 
 ## 硬件
 
@@ -87,10 +87,12 @@ tap A|B|C|AC|AB|BC|ABC [ms]
 
 ## 后续方向
 
-- Gemini 3 Flash 文字对话
+- 小智语音路线探索，独立分支推进
+- 可替换更强模型的对话/工具调用接口
+- 轻量 agent 能力，例如状态观察、计划、动作序列和记忆
 - AI overlay 与结构化动作到 A/B/C 按键序列的桥接
 - IMU 互动，例如摇晃、轻拍、翻转
-- 语音交互和小智路线参考
+- 彩屏和核心游戏体验稳定后再进入 `main`
 - 可选 Claude Desktop Buddy / BLE 模式
 
 ## 参考项目
@@ -116,7 +118,7 @@ A desktop / pocket virtual pet project for the M5StickS3. The current firmware r
 - Phase 2: TamaLIB is ported to M5StickS3. The local P1 ROM firmware builds, flashes, and boots.
 - Phase 3: LittleFS save / restore, NVS settings, 4-level volume including mute, brightness control, idle dimming, dark-room rendering, display sleep, and green system LED sleep-off behavior are implemented.
 - Current firmware version: `phase3-combo-order-001`.
-- Next phase: Gemini text conversation overlay and AI action bridge.
+- Next phase: explore the XiaoZhi voice path, stronger replaceable model backends, and lightweight agent behavior on a separate branch.
 
 ## Hardware
 
@@ -191,8 +193,10 @@ tap A|B|C|AC|AB|BC|ABC [ms]
 
 ## Roadmap
 
-- Gemini 3 Flash text conversation
+- XiaoZhi voice-path exploration on a separate branch
+- Replaceable stronger model backends for conversation and tool calls
+- Lightweight agent behavior such as observation, planning, action sequences, and memory
 - AI overlay and structured action bridge to A/B/C button sequences
 - IMU interactions such as shake, tap, and flip
-- Voice interaction and XiaoZhi-inspired pipeline research
+- Color-screen and core gameplay improvements can later land on `main`
 - Optional Claude Desktop Buddy / BLE mode

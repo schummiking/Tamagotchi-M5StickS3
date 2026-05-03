@@ -4,13 +4,13 @@
 
 ## 当前状态
 
-项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。当前顺序组合键修正版已烧录到设备：`key1 -> key2` 保持 C/退出，`key2 -> key1` 映射原版 `A+C`/SET，用于设备端直接调时。GitHub 远端已配置为 `schummiking/Tamagotchi-M5StickS3`，准备首次推送。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。当前顺序组合键修正版已烧录到设备：`key1 -> key2` 保持 C/退出，`key2 -> key1` 映射原版 `A+C`/SET，用于设备端直接调时。GitHub 远端已推送到 `schummiking/Tamagotchi-M5StickS3`。
 
 已完成：
 
 - 用 Kiro CLI + `claude-opus-4.6` 讨论总体开发方案
 - 明确路线：TamaLIB 原版核心优先，AI 作为 overlay/输入外挂层
-- 明确 AI 顺序：先 Gemini 3 Flash 文字交互，后小智/语音
+- AI 路线已调整：小智语音、模型替换和 agent 能力先走独立实验线；`main` 保持 Tamagotchi 核心和彩屏/界面稳定改进
 - 明确存档策略：TamaLIB 状态用 LittleFS，配置用 NVS
 - 完成阶段 1：屏幕、按钮、喇叭、IMU 实机验证
 - 完成阶段 2：TamaLIB submodule、HAL、ROM 本地生成入口、无 ROM 启动页
@@ -18,9 +18,9 @@
 
 下一步：
 
-- 进入阶段 4：Gemini 文字对话
-- 准备 Wi-Fi/API Key 的本地配置入口，继续保持 secrets 不提交
-- 设计 AI overlay 和结构化动作到 A/B/C 按键序列的桥接
+- 创建小智/agent 独立实验分支
+- 调研小智固件和协议，确认 M5StickS3 适配路径
+- 评估更智能模型后端、工具调用和轻量 agent 能力边界
 
 ## 进度维护规则
 
@@ -36,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | GitHub 首次发布和中英文首页 README |
-| 状态 | README 已更新，远端已绑定，等待提交并推送 |
-| 验收标准 | README 首页包含中文和英文项目说明、操作方式、ROM 说明、构建烧录方式和路线图；`origin` 指向 `schummiking/Tamagotchi-M5StickS3`；本地提交后推送 `main` 到 GitHub |
+| 任务 | 调整后续路线：小智/agent 走独立实验线 |
+| 状态 | 已完成，准备提交推送并创建实验分支 |
+| 验收标准 | 项目计划、进度和 README 均记录：`main` 只承载稳定 Tamagotchi 核心和彩屏/界面改进；小智、模型替换和 agent 能力走独立分支/fork；下一步创建小智探索分支 |
 
 ## 里程碑进度
 
@@ -48,8 +48,8 @@
 | 阶段 1：硬件验证 | 已完成 | 屏幕/按钮/喇叭/IMU 可用 |
 | 阶段 2：TamaLIB 移植 | 已完成到带本地 ROM 可交付状态 | TamaLIB 可编译、可烧录；ROM 本地接入；S3 HAL 已实现；本地 P1 ROM 固件启动成功 |
 | 阶段 3：存档和功耗 | 已完成到可交付状态 | 重启可恢复 LittleFS 存档；亮度/音量 NVS 持久化；4 档音量含静音；状态栏档位；空闲降亮；关灯黑房间；竖屏菜单图标；显示睡眠；低电压/睡眠前尽力保存 |
-| 阶段 4：Gemini 文字对话 | 未开始 | `key2` 长按触发 AI 对话并显示 overlay |
-| 阶段 5：语音/小智参考 | 未开始 | 按键录音、云端处理、端侧播放 |
+| 阶段 4：小智语音与模型替换实验 | 未开始 | 独立分支验证小智语音链路、模型后端替换和 agent 能力边界 |
+| 阶段 5：AI 回接 Tamagotchi 主线 | 未开始 | 将验证过的 overlay/语音/动作桥接能力低风险接回主线 |
 | 阶段 6：可选扩展 | 未开始 | Buddy/日记/自定义角色等 |
 
 ## 决策记录
@@ -60,6 +60,8 @@
 | 2026-05-02 | AI 不直接改 ROM/状态 | 避免破坏原版逻辑，降低调试难度 |
 | 2026-05-02 | 先 Gemini 3 Flash 文字对话 | 最小集成成本，适合先验证体验 |
 | 2026-05-02 | 小智后置 | 小智是完整语音助手框架，早期会抢占主应用复杂度 |
+| 2026-05-03 | AI 路线调整为小智优先实验 | 当前主线已可玩，下一步更需要验证语音链路、模型后端替换和 agent 能力；这类探索应在独立分支/fork 中推进 |
+| 2026-05-03 | `main` 只接收稳定核心和彩屏/界面改进 | 保持 GitHub 首页和主分支始终代表可构建、可烧录、可玩的 Tamagotchi-M5StickS3 基线 |
 | 2026-05-02 | MVP 不解析 LCD/内部状态 | 状态读取后置，先保证可玩和可交流 |
 | 2026-05-02 | TamaLIB 存档用 LittleFS | 状态数据更适合文件存储，NVS 留给小配置 |
 | 2026-05-02 | ROM 不提交到 git | 避免版权和分发风险 |
@@ -170,7 +172,9 @@
 | 2026-05-03 | 验证 | 顺序组合键修正版成功烧录到 `COM4`，esptool 确认 ESP32-S3-PICO-1、8MB Flash、8MB PSRAM | 本次提交 |
 | 2026-05-03 | 验证 | USB 串口返回 `serial: commands: help, dump, save, tap A|B|C|AC|AB|BC|ABC [ms]`，确认应用固件正在运行 | 本次提交 |
 | 2026-05-03 | 文档 | README 改为 GitHub 首页用中英文双语版，补充当前状态、操作方式、ROM 不分发说明、构建烧录和路线图 | 本次提交 |
-| 2026-05-03 | 版本 | 远端 `origin` 配置为 `https://github.com/schummiking/Tamagotchi-M5StickS3.git`，准备首次推送 `main` | 本次提交 |
+| 2026-05-03 | 版本 | 远端 `origin` 配置为 `https://github.com/schummiking/Tamagotchi-M5StickS3.git`，并完成首次推送 `main` | 本次提交 |
+| 2026-05-03 | 版本 | `main` 已推送到 GitHub；后续小智、模型替换和 agent 能力默认走独立实验分支/fork | 本次提交 |
+| 2026-05-03 | 文档 | 将阶段 4 调整为小智语音与模型替换实验，阶段 5 调整为 AI 能力回接 Tamagotchi 主线 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -212,7 +216,8 @@
 Git push 状态：
 
 - 远端 `origin` 已配置为 `https://github.com/schummiking/Tamagotchi-M5StickS3.git`
-- 本轮 README 发布提交完成后推送 `main`
+- `main` 已推送并跟踪 `origin/main`
+- 小智/agent 工作从独立分支开始，不直接污染 `main`
 
 本地 ROM 仍然只存在于 ignored 文件中，不提交：
 
@@ -248,19 +253,18 @@ Git push 状态：
 - 绿色 LED 另有独立问题：旧实现误用了 PI4IO `0x44`，当前 StickS3 原理图和 M5Unified 自动识别均表明状态灯接在 M5PM1 `0x6E` 的 `LED_EN_PP` 上；已改为 PM1 `PWR_CFG` bit4 控制。
 - 已烧录并验证 `phase3-pm1-led-002`：黑房间、夜间低亮度、显示睡眠、PM1 状态灯睡眠关闭和唤醒恢复均有串口证据。
 
-### 阶段 4 预备
+### 阶段 4 预备：小智语音与模型替换实验
 
 预计文件：
 
-- `src/network_config.*`
-- `src/ai_client.*`
-- `src/ai_overlay.*`
-- `src/ai_actions.*`
+- `experiments/xiaozhi/` 或独立 fork/submodule：小智源码、构建记录、适配笔记
+- `docs/XIAOZHI_AGENT_PLAN.md`：小智适配、模型替换和 agent 能力边界
+- 后续如回接主线，再新增 `src/network_config.*`、`src/ai_client.*`、`src/ai_overlay.*`、`src/ai_actions.*`
 
 最小验收：
 
-- `include/secrets_local.h` 或 NVS 提供本地 Wi-Fi/API Key，不进入 git
-- 长按 `key2` 触发一次 Gemini 文字请求
-- 收到回复后显示在 P1 画面下方 overlay
-- AI 可选输出结构化动作，动作层把它转换为 A/B/C 按键序列
-- Wi-Fi 用完后关闭或进入低功耗状态
+- 小智实验分支可构建，或明确记录不可构建阻塞
+- 能说明 M5StickS3 的麦克风、喇叭、按钮、屏幕和功耗与小智路线的冲突点
+- 输出可替换模型方案，优先考虑兼容 OpenAI/Gemini/本地网关的抽象层
+- 输出 agent 边界：可观察什么、能调用哪些动作、哪些动作需要用户确认
+- 所有 secrets、Wi-Fi、API Key、ROM 继续不提交
