@@ -22,7 +22,7 @@
 
 适配 S3 的工作：
 - 屏幕驱动：M5Unified/LovyanGFX，原版 32x16 → 128x64
-- 按钮映射：A=`key1`，B=`key2`，C=`key1+key2`；`power` 只作为系统键
+- 按钮映射：A=`key1`，B=`key2`，C=`key1` 后按 `key2`，A+C=`key2` 后按 `key1`；`power` 只作为系统键
 - 音频：原版蜂鸣器 → S3 的 1W I2S 喇叭
 - ROM：本地 `data/rom.h`，不提交到 git；无 ROM 时固件仍可启动
 - 存储：阶段 3 持久化到 LittleFS，断电不丢失

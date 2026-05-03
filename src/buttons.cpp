@@ -21,6 +21,7 @@ uint8_t g_tama_mask = 0;
 uint8_t g_injected_mask = 0;
 uint32_t g_injected_until_ms = 0;
 bool g_combo_latched = false;
+uint8_t g_combo_mask = 0;
 bool g_feedback_enabled = true;
 bool g_suppress_until_release = false;
 bool g_last_key1 = false;
@@ -34,6 +35,8 @@ const char* eventName(ButtonEvent event) {
       return "B";
     case ButtonEvent::C:
       return "C";
+    case ButtonEvent::AC:
+      return "A+C";
     case ButtonEvent::AiWake:
       return "AI_WAKE";
     case ButtonEvent::Menu:
@@ -79,7 +82,7 @@ void refreshInjectedMask() {
 
 void refreshTamaMask(bool key1, bool key2) {
   if (g_combo_latched) {
-    g_tama_mask = (key1 && key2) ? kTamaButtonC : 0;
+    g_tama_mask = (key1 && key2) ? g_combo_mask : 0;
     return;
   }
 
@@ -113,6 +116,7 @@ void buttonsInit() {
   clearTamaPulse();
   g_tama_mask = 0;
   g_combo_latched = false;
+  g_combo_mask = 0;
   g_feedback_enabled = true;
   g_suppress_until_release = false;
   g_last_key1 = M5.BtnA.isPressed();
@@ -157,14 +161,19 @@ void buttonsUpdate() {
 
   if (key1 && key2 && !g_combo_latched) {
     g_combo_latched = true;
+    const bool key2_first =
+        g_key2_down_ms != 0 && g_key1_down_ms != 0 &&
+        static_cast<int32_t>(g_key1_down_ms - g_key2_down_ms) > 0;
+    g_combo_mask = key2_first ? (kTamaButtonA | kTamaButtonC) : kTamaButtonC;
     clearTamaPulse();
-    publish(ButtonEvent::C);
+    publish(key2_first ? ButtonEvent::AC : ButtonEvent::C);
   }
 
   if (g_combo_latched) {
     refreshTamaMask(key1, key2);
     if (!key1 && !key2) {
       g_combo_latched = false;
+      g_combo_mask = 0;
     }
   } else {
     if (!key1 && g_last_key1) {

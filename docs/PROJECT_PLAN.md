@@ -1,6 +1,6 @@
 # M5StickS3 桌面电子宠物项目计划
 
-更新时间：2026-05-02
+更新时间：2026-05-03
 
 ## 项目目标
 
@@ -93,7 +93,8 @@ M5StickS3 采用竖屏 135x240。
 | --- | --- |
 | 原版 A | `key1`，蓝色正面键 |
 | 原版 B | `key2`，侧键 |
-| 原版 C | `key1` + `key2` 同时按 |
+| 原版 C | 按住 `key1` 后按 `key2` |
+| 原版 A+C | 按住 `key2` 后按 `key1` |
 | 唤起 AI | `key2` 长按 |
 | 设置/模式菜单 | `key1` 长按 |
 
@@ -118,7 +119,7 @@ IMU 互动后置：
 - 实现 `hal_t` 到 M5StickS3：
   - LCD matrix/icon 缓冲
   - 30fps 渲染到 135x240 屏幕
-  - key1/key2/key1+key2 到 A/B/C
+  - key1/key2/顺序组合键到 A/B/C/A+C
   - 蜂鸣器频率到 M5Unified Speaker
   - `micros()` 时间戳和 `sleep_until`
   - 串口错误日志
@@ -133,9 +134,9 @@ IMU 互动后置：
 - `src/tama_storage.*` 用 LittleFS 保存/恢复 TamaLIB CPU/RAM/timer/interrupt 快照
 - `src/settings.*` 用 NVS 保存亮度、音量和 idle 阈值
 - `src/power_manager.*` 实现 idle 降亮、暗屏夜间亮度、显示睡眠、按键活动恢复亮度、低电压/睡眠前尽力保存
-- `key1` 短按松开触发 A，`key2` 短按松开触发 B；按住一个键期间出现另一个键触发 C，避免组合键误触 A/B
+- `key1` 短按松开触发 A，`key2` 短按松开触发 B；组合键按下顺序会区分语义：`key1 -> key2` 触发 C/退出，`key2 -> key1` 触发原版 A+C/SET，避免组合键误触 A/B
 - `key1` 长按松开循环亮度，`key2` 长按松开循环音量
-- `key1+key2` 保持原版 C/退出，不复用为睡眠入口
+- `key1 -> key2` 保持原版 C/退出，不复用为睡眠入口；`key2 -> key1` 用于原版 A+C，例如时钟页进入 SET
 - M5Unified fallback board 固定为 `board_M5StickS3`，避免自动识别异常时影响 I2C/IMU
 
 限制：
@@ -196,7 +197,7 @@ IMU 互动后置：
 - 无操作降亮度或关屏；宠物关灯后显示黑房间并可进入显示睡眠
 - 关灯房间识别需要覆盖打呼动画：房间背景反色为黑，打呼/动画保留为绿色，并继续触发夜间降亮和显示睡眠
 - 显示睡眠时通过 M5PM1 `LED_EN_PP` 关闭绿色状态 LED，按键唤醒后恢复休眠前状态
-- USB 调试口支持原版按键注入和屏幕帧 dump，便于执行 `A+C` 这类物理两键映射无法直接表达的校时操作
+- USB 调试口支持原版按键注入和屏幕帧 dump，便于调试；物理按键现在可通过 `key2 -> key1` 表达原版 `A+C`
 - 竖屏下显示 FOOD、LIGHT、GAME、MED、CLEAN、STAT、DISC、CALL 菜单区
 - 顶部显示当前亮度和音量档位；长按 `key1` 调亮度，长按 `key2` 在 `0/32/96/160` 四档音量间切换
 - 重启后恢复宠物状态

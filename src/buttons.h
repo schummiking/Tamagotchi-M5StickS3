@@ -7,6 +7,7 @@ enum class ButtonEvent {
   A,
   B,
   C,
+  AC,
   AiWake,
   Menu,
 };
