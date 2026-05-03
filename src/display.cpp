@@ -6,6 +6,7 @@
 
 #include "buttons.h"
 #include "pins.h"
+#include "settings.h"
 
 namespace {
 constexpr uint16_t kBlack = 0x0000;
@@ -34,8 +35,8 @@ constexpr int kMenuCellH = 42;
 bool g_tama_frame_ready = false;
 bool g_last_tama_pixels[kTamaWidth * kTamaHeight] = {};
 bool g_last_tama_icons[kTamaIconCount] = {};
-bool g_last_tama_sound = false;
-uint32_t g_last_tama_second = UINT32_MAX;
+uint8_t g_last_brightness = UINT8_MAX;
+uint8_t g_last_volume = UINT8_MAX;
 int8_t g_last_menu_hint = -2;
 
 constexpr const char* kMenuLabels[kTamaIconCount] = {
@@ -86,18 +87,47 @@ void drawControls(uint16_t color) {
   M5.Display.print("Menu:k1h   AI:k2h");
 }
 
-void drawTamaStatus(bool sound_on) {
-  const uint32_t seconds = millis() / 1000;
-  if (seconds == g_last_tama_second && sound_on == g_last_tama_sound) {
+uint8_t settingLevel(uint8_t value, uint8_t low, uint8_t mid) {
+  if (value <= low) {
+    return 1;
+  }
+  if (value <= mid) {
+    return 2;
+  }
+  return 3;
+}
+
+void drawMeter(int x, int y, uint8_t level, uint16_t color) {
+  for (uint8_t slot = 0; slot < 3; ++slot) {
+    const int bar_x = x + slot * 8;
+    const int bar_h = 4 + slot * 2;
+    const int bar_y = y + 8 - bar_h;
+    M5.Display.drawRect(bar_x, y, 6, 8, kDarkGray);
+    if (slot < level) {
+      M5.Display.fillRect(bar_x + 1, bar_y + 1, 4, bar_h - 1, color);
+    } else {
+      M5.Display.fillRect(bar_x + 1, y + 1, 4, 6, kBlack);
+    }
+  }
+}
+
+void drawTamaStatus() {
+  const uint8_t brightness = settingsActiveBrightness();
+  const uint8_t volume = settingsVolume();
+  if (brightness == g_last_brightness && volume == g_last_volume) {
     return;
   }
 
-  g_last_tama_second = seconds;
-  g_last_tama_sound = sound_on;
+  g_last_brightness = brightness;
+  g_last_volume = volume;
   M5.Display.fillRect(4, 18, 128, 10, kBlack);
   M5.Display.setTextColor(kGray, kBlack);
   M5.Display.setCursor(4, 18);
-  M5.Display.printf("%lus  sound:%s", seconds, sound_on ? "on" : "off");
+  M5.Display.print("BRI");
+  drawMeter(28, 18, settingLevel(brightness, 64, 128), kYellow);
+  M5.Display.setCursor(70, 18);
+  M5.Display.print("VOL");
+  drawMeter(94, 18, settingLevel(volume, 32, 96), kCyan);
 }
 
 void drawCenteredText(const char* text, int x, int y, int width, uint16_t color) {
@@ -255,15 +285,16 @@ void drawMenuHint(const bool* icons, bool force) {
   }
 }
 
-void drawTamaStaticFrame(bool sound_on) {
+void drawTamaStaticFrame() {
   M5.Display.fillScreen(kBlack);
 
   M5.Display.setTextColor(kGreen, kBlack);
   M5.Display.setCursor(4, 4);
   M5.Display.print("Tamagotchi P1");
 
-  g_last_tama_second = UINT32_MAX;
-  drawTamaStatus(sound_on);
+  g_last_brightness = UINT8_MAX;
+  g_last_volume = UINT8_MAX;
+  drawTamaStatus();
 
   M5.Display.drawRect(kTamaX - 2, kTamaY - 2, kTamaWidth * kTamaScale + 4,
                       kTamaHeight * kTamaScale + 4, kGray);
@@ -303,7 +334,8 @@ void displaySetBrightness(uint8_t brightness) {
 
 void displayInvalidateTamaFrame() {
   g_tama_frame_ready = false;
-  g_last_tama_second = UINT32_MAX;
+  g_last_brightness = UINT8_MAX;
+  g_last_volume = UINT8_MAX;
 }
 
 void displayRender(const ImuSample& imu) {
@@ -381,12 +413,12 @@ void displayRenderMissingRom(const ImuSample& imu, bool init_failed) {
   M5.Display.print("power is system-only");
 }
 
-void displayRenderTama(const bool* pixels, const bool* icons, bool sound_on) {
+void displayRenderTama(const bool* pixels, const bool* icons, bool) {
   if (!g_tama_frame_ready) {
-    drawTamaStaticFrame(sound_on);
+    drawTamaStaticFrame();
   }
 
-  drawTamaStatus(sound_on);
+  drawTamaStatus();
 
   const bool dark_room = isFilledDarkRoom(pixels);
   M5.Display.startWrite();
