@@ -10,6 +10,7 @@
 #include "serial_console.h"
 #include "settings.h"
 #include "tama_app.h"
+#include "tama_storage.h"
 
 namespace {
 void handleSettingsShortcuts() {
@@ -52,10 +53,16 @@ void setup() {
   powerManagerInit();
   imuSmokeInit();
   tamaAppInit();
+  tamaStoragePrintDiagnostics();
+  powerManagerPrintDiagnostics();
 
   Serial.printf("boot ok: %s %s\n", board::kName, board::kFirmwareVersion);
   audioPlayBootTone();
   tamaAppUpdate(imuSmokeSample());
+  if (powerManagerHandleWakeCatchup()) {
+    displayInvalidateTamaFrame();
+    tamaAppUpdate(imuSmokeSample());
+  }
 }
 
 void loop() {

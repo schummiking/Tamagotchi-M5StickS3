@@ -15,6 +15,7 @@ constexpr uint32_t kSaveMagic = 0x33544D54;  // TMT3
 constexpr uint16_t kSaveVersion = 1;
 constexpr uint32_t kIdleSaveDelayMs = 2000;
 constexpr uint32_t kMinSaveIntervalMs = 5000;
+constexpr uint32_t kPeriodicCheckpointMs = 5UL * 60UL * 1000UL;
 
 struct SavePayload {
   u13_t pc;
@@ -257,10 +258,23 @@ void tamaStorageMarkDirty() {
 }
 
 void tamaStorageUpdate(bool running, bool any_pressed, uint32_t idle_age_ms) {
-  if (!running || !g_dirty || any_pressed || idle_age_ms < kIdleSaveDelayMs) {
+  if (!running || any_pressed || idle_age_ms < kIdleSaveDelayMs) {
     return;
   }
+
   const uint32_t now = millis();
+  const bool checkpoint_due =
+      g_last_save_ms == 0 || now - g_last_save_ms >= kPeriodicCheckpointMs;
+  if (!g_dirty && checkpoint_due) {
+    Serial.println("storage: periodic checkpoint");
+    tamaStorageSave();
+    return;
+  }
+
+  if (!g_dirty) {
+    return;
+  }
+
   if (g_last_save_ms != 0 && now - g_last_save_ms < kMinSaveIntervalMs) {
     return;
   }
@@ -280,4 +294,10 @@ bool tamaStorageHasSave() {
 
 uint32_t tamaStorageLastSaveMs() {
   return g_last_save_ms;
+}
+
+void tamaStoragePrintDiagnostics() {
+  Serial.printf("storage: diag mounted=%d has_save=%d dirty=%d last_save_ms=%lu\n",
+                g_mounted ? 1 : 0, tamaStorageHasSave() ? 1 : 0, g_dirty ? 1 : 0,
+                static_cast<unsigned long>(g_last_save_ms));
 }

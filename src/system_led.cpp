@@ -137,11 +137,21 @@ void systemLedInit() {
     Serial.println("system_led: no controllable led");
     return;
   }
-  g_restore_visible = readLedVisible();
+  setLedVisible(true);
+  g_restore_visible = true;
   Serial.printf("system_led: backend %s\n", backendName());
 }
 
 void systemLedEnterDisplaySleep() {
+  // Display standby is intentionally visible: the LED reminds us this is not
+  // a real low-power state.
+  Serial.printf("system_led: display standby keep on (%s)\n", backendName());
+}
+
+void systemLedLeaveDisplaySleep() {
+}
+
+void systemLedEnterLowPowerSleep() {
   if (g_sleep_override) {
     return;
   }
@@ -157,10 +167,10 @@ void systemLedEnterDisplaySleep() {
     return;
   }
   g_sleep_override = true;
-  Serial.printf("system_led: sleep off (%s)\n", backendName());
+  Serial.printf("system_led: low power off (%s)\n", backendName());
 }
 
-void systemLedLeaveDisplaySleep() {
+void systemLedLeaveLowPowerSleep() {
   if (!g_sleep_override) {
     return;
   }

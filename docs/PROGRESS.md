@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。当前顺序组合键修正版已烧录到设备：`key1 -> key2` 保持 C/退出，`key2 -> key1` 映射原版 `A+C`/SET，用于设备端直接调时。GitHub 远端已推送到 `schummiking/Tamagotchi-M5StickS3`。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。主线功耗修复已完成并烧录验证：黑屏待机保留绿色 LED，真实低功耗使用分段 deep sleep，定时唤醒后补跑 TamaLIB 时间。
 
 已完成：
 
@@ -18,9 +18,9 @@
 
 下一步：
 
-- 创建小智/agent 独立实验分支
-- 调研小智固件和协议，确认 M5StickS3 适配路径
-- 评估更智能模型后端、工具调用和轻量 agent 能力边界
+- 优先修复主线功耗：黑屏待机保留绿灯、夜间进入真实低功耗 deep sleep、周期 checkpoint、启动恢复诊断
+- 实机验证短睡眠唤醒、时间补偿和电量行为
+- 功耗主线稳定后再回到小智/agent 实验分支
 
 ## 进度维护规则
 
@@ -36,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 调整后续路线：小智/agent 走独立实验线 |
-| 状态 | 已完成，准备提交推送并创建实验分支 |
-| 验收标准 | 项目计划、进度和 README 均记录：`main` 只承载稳定 Tamagotchi 核心和彩屏/界面改进；小智、模型替换和 agent 能力走独立分支/fork；下一步创建小智探索分支 |
+| 任务 | 主线功耗修复：区分黑屏待机和真实低功耗睡眠 |
+| 状态 | 已完成，已编译、烧录并通过短 deep sleep 实机验证 |
+| 验收标准 | 黑屏待机时绿色 LED 保留；夜间/关灯后进入 ESP deep sleep 分段低功耗；每段唤醒后快速补偿 TamaLIB 时间；周期 checkpoint 降低硬关机丢档风险；启动/恢复诊断可通过串口看到；编译、烧录、短睡眠实机验证通过 |
 
 ## 里程碑进度
 
@@ -175,6 +175,14 @@
 | 2026-05-03 | 版本 | 远端 `origin` 配置为 `https://github.com/schummiking/Tamagotchi-M5StickS3.git`，并完成首次推送 `main` | 本次提交 |
 | 2026-05-03 | 版本 | `main` 已推送到 GitHub；后续小智、模型替换和 agent 能力默认走独立实验分支/fork | 本次提交 |
 | 2026-05-03 | 文档 | 将阶段 4 调整为小智语音与模型替换实验，阶段 5 调整为 AI 能力回接 Tamagotchi 主线 | 本次提交 |
+| 2026-05-04 | 发现 | 用户实测夜间黑屏后电池耗尽，且开机回到蛋；确认当前“休眠”只是关背光/LED，CPU 和 TamaLIB 仍在运行，硬关机/耗尽后也没有离线时间补偿 | 本次提交 |
+| 2026-05-04 | 决策 | 黑屏待机保留绿色 LED，避免误以为进入低功耗；只有真实低功耗 sleep 才关闭 LED | 本次提交 |
+| 2026-05-04 | 决策 | 先实现不联网的分段 deep sleep + 快速补跑；StickS3 官方规格未列外部 RTC，因此硬关机后的准确 elapsed 需要后续联网/NTP 或额外 RTC 支持 | 本次提交 |
+| 2026-05-04 | 修正 | 黑屏待机改为保留绿色 LED；只有进入真实低功耗 deep sleep 前才关闭 LED | 本次提交 |
+| 2026-05-04 | 开发 | 新增 deep sleep 睡眠 journal、唤醒后 TamaLIB 快速补跑、周期 checkpoint、启动/串口 `diag` 诊断和临时 `nap [ms]` 测试命令 | 本次提交 |
+| 2026-05-04 | 验证 | `platformio run` 编译通过，Flash 使用约 613157 bytes，RAM 使用约 25324 bytes | 本次提交 |
+| 2026-05-04 | 验证 | 修正版成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-lowpower-001` | 本次提交 |
+| 2026-05-04 | 验证 | 串口执行 `nap 5000`：进入 deep sleep 前保存并关闭 PM1 LED，重启后日志显示 `catchup requested=5000ms` / `advanced=5000ms`，`diag` 显示 `last_catchup_ms=5000`、`last_wake=4`、`last_seq=1`，确认定时唤醒和 5 秒补偿生效 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -192,16 +200,16 @@
 
 - `src/tama_storage.*`：LittleFS 存档/恢复，保存 TamaLIB CPU/RAM/timer/interruption 快照
 - `src/settings.*`：NVS 亮度、音量、idle 阈值配置
-- `src/power_manager.*`：idle 降亮、暗屏夜间亮度、显示睡眠、按键唤醒、低电压/睡眠前保存入口
-- `src/system_led.*`：显示睡眠时关闭 Stick S3 绿色系统 LED，唤醒后恢复睡眠前状态
-- `src/serial_console.*`：USB 调试命令，可注入原版 A/B/C/组合键、打印帧、手动保存，用于校时和调试
+- `src/power_manager.*`：idle 降亮、暗屏夜间亮度、黑屏待机、夜间分段 deep sleep、唤醒补偿、按键唤醒、低电压/睡眠前保存入口
+- `src/system_led.*`：黑屏待机时保持 Stick S3 绿色系统 LED 可见；真实低功耗 sleep 前关闭，唤醒后恢复
+- `src/serial_console.*`：USB 调试命令，可注入原版 A/B/C/组合键、打印帧、手动保存、查看诊断、触发短睡眠测试
 - `src/tama_frame.h`：共享 Tama 32x16 帧统计和关灯房间识别阈值，避免显示与功耗判断分叉
 - `src/buttons.*`：顺序组合键，`key1 -> key2` 为 C/退出，`key2 -> key1` 为 A+C/SET
 - `src/display.cpp`：竖屏运行界面显示原版 8 菜单图标、选中项提示、亮度/音量档位状态栏
 - `src/main.cpp`：接入设置快捷键和功耗更新
-- `src/tama_app.cpp`：接入存档恢复、输入后 dirty 标记和 idle 保存
+- `src/tama_app.cpp`：接入存档恢复、输入后 dirty 标记、idle 保存和快速补跑
 - `src/audio.cpp`：音量 `0` 时停止 speaker，boot/按键音不发声
-- `include/pins.h`：固件版本更新为 `phase3-combo-order-001`
+- `include/pins.h`：固件版本更新为 `phase3-lowpower-001`
 
 阶段 3 当前操作：
 
@@ -211,7 +219,7 @@
 - 按住 `key2` 后按 `key1`：原版 A+C/SET，用于时钟页改时间
 - 长按 `key1` 后松开：循环亮度档位 `64 -> 128 -> 200 -> 64`
 - 长按 `key2` 后松开：循环音量档位 `0 -> 32 -> 96 -> 160 -> 0`
-- USB 串口调试：`tap A/B/C/AC [ms]` 注入原版按键，`dump` 输出 32x16 帧，`save` 手动保存
+- USB 串口调试：`tap A/B/C/AC [ms]` 注入原版按键，`dump` 输出 32x16 帧，`save` 手动保存，`diag` 输出临时恢复诊断，`nap [ms]` 触发短睡眠补偿测试
 
 Git push 状态：
 
@@ -236,13 +244,13 @@ Git push 状态：
 
 - 启动日志出现 `tamalib: initialized with local ROM`
 - 启动日志出现 `storage: restored 648 bytes`
-- 当前已烧录 `phase3-combo-order-001`，串口调试命令有响应
+- 当前已烧录 `phase3-lowpower-001`，串口调试命令有响应
 - 空闲约 30 秒后出现 `power: display idle brightness`
 - P1 关灯后的全亮矩阵显示为黑房间，不再是整块绿色
 - `key1 -> key2` 仍然是原版 C/退出，`key2 -> key1` 是原版 A+C/SET
 - P1 运行界面底部显示 8 个菜单图标和短标签，不再被按键说明占满
 - 顶部状态栏显示亮度/音量档位，不再显示瞬时蜂鸣状态；音量静音档显示红色 X
-- 显示睡眠入口已接入绿色状态 LED 熄灭逻辑；串口确认 StickS3 使用 PM1 后端，睡眠时出现 `system_led: sleep off (pm1)`，唤醒时出现 `system_led: restored (pm1)`
+- 黑屏待机保留绿色 LED；真实低功耗 deep sleep 前关闭 PM1 LED，短睡眠测试已确认定时唤醒和 catchup 诊断
 - USB 辅助校时已验证：当前 ROM 时钟在 `2026-05-02 22:03:00 -05:00` 对齐到 `10:03 PM`
 - Flash/RAM 占用保持安全：约 17.8% Flash、7.4% RAM
 

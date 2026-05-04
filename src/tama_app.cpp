@@ -31,12 +31,16 @@ constexpr uint8_t kIconCount = 8;
 constexpr uint32_t kFrameIntervalMs = 33;
 constexpr uint32_t kStepBudgetUs = 7000;
 constexpr uint16_t kMaxStepsPerLoop = 512;
+constexpr uint32_t kTamaTickFrequency = 32768;
+constexpr uint32_t kMaxCatchupElapsedMs = 10UL * 60UL * 1000UL;
+constexpr uint32_t kMaxCatchupWallMs = 15000;
 
 bool g_pixels[kLcdHeight][kLcdWidth] = {};
 bool g_icons[kIconCount] = {};
 bool g_running = false;
 bool g_init_failed = false;
 bool g_sound_enabled = false;
+bool g_fast_forwarding = false;
 uint32_t g_frequency_dhz = 40960;
 uint32_t g_last_frame_ms = 0;
 uint8_t g_last_button_mask = 0;
@@ -105,14 +109,14 @@ void halSetLcdIcon(u8_t icon, bool_t val) {
 
 void halSetFrequency(u32_t freq_dhz) {
   g_frequency_dhz = freq_dhz;
-  if (g_sound_enabled && audioVolume() > 0) {
+  if (g_sound_enabled && audioVolume() > 0 && !g_fast_forwarding) {
     M5.Speaker.tone(static_cast<float>(g_frequency_dhz) / 10.0f);
   }
 }
 
 void halPlayFrequency(bool_t enabled) {
   g_sound_enabled = enabled != 0;
-  if (g_sound_enabled && audioVolume() > 0) {
+  if (g_sound_enabled && audioVolume() > 0 && !g_fast_forwarding) {
     M5.Speaker.tone(static_cast<float>(g_frequency_dhz) / 10.0f);
   } else {
     M5.Speaker.stop();
@@ -241,6 +245,59 @@ bool tamaAppIsScreenDark() {
 
   const uint16_t active_pixels = tamaFrameCountLit(&g_pixels[0][0]);
   return active_pixels <= 2 || active_pixels >= kTamaDarkRoomMinLitPixels;
+}
+
+uint32_t tamaAppFastForward(uint32_t elapsed_ms) {
+  if (!g_running || elapsed_ms == 0) {
+    return 0;
+  }
+
+  state_t* state = tamalib_get_state();
+  if (state == nullptr || state->tick_counter == nullptr) {
+    Serial.println("tamalib: catchup skipped, no state");
+    return 0;
+  }
+
+  const uint32_t requested_ms = elapsed_ms;
+  if (elapsed_ms > kMaxCatchupElapsedMs) {
+    elapsed_ms = kMaxCatchupElapsedMs;
+  }
+
+  const uint32_t start_ticks = *state->tick_counter;
+  const uint32_t target_ticks =
+      start_ticks + static_cast<uint32_t>((static_cast<uint64_t>(elapsed_ms) *
+                                           kTamaTickFrequency) /
+                                          1000ULL);
+  const uint32_t wall_start_ms = millis();
+  uint32_t steps = 0;
+
+  g_fast_forwarding = true;
+  tamalib_set_speed(0);
+  while (static_cast<int32_t>(*state->tick_counter - target_ticks) < 0 &&
+         millis() - wall_start_ms < kMaxCatchupWallMs) {
+    tamalib_step();
+    ++steps;
+    if ((steps & 0x3FF) == 0) {
+      yield();
+    }
+  }
+  tamalib_set_speed(1);
+  g_fast_forwarding = false;
+  M5.Speaker.stop();
+
+  const uint32_t advanced_ticks = *state->tick_counter - start_ticks;
+  const uint32_t advanced_ms =
+      static_cast<uint32_t>((static_cast<uint64_t>(advanced_ticks) * 1000ULL) /
+                            kTamaTickFrequency);
+  Serial.printf("tamalib: catchup requested=%lums capped=%lums advanced=%lums steps=%lu wall=%lums\n",
+                static_cast<unsigned long>(requested_ms),
+                static_cast<unsigned long>(elapsed_ms),
+                static_cast<unsigned long>(advanced_ms),
+                static_cast<unsigned long>(steps),
+                static_cast<unsigned long>(millis() - wall_start_ms));
+  tamaStorageMarkDirty();
+  renderTamaFrame();
+  return advanced_ms;
 }
 
 void tamaAppPrintDebugFrame() {

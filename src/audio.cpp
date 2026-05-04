@@ -23,6 +23,10 @@ uint8_t audioVolume() {
   return g_volume;
 }
 
+void audioStop() {
+  M5.Speaker.stop();
+}
+
 void audioPlayBootTone() {
   if (g_volume == 0) {
     return;

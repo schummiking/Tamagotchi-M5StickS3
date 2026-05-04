@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "buttons.h"
+#include "power_manager.h"
 #include "tama_app.h"
 #include "tama_storage.h"
 
@@ -14,7 +15,7 @@ char g_line[80] = {};
 uint8_t g_line_len = 0;
 
 void printHelp() {
-  Serial.println("serial: commands: help, dump, save, tap A|B|C|AC|AB|BC|ABC [ms]");
+  Serial.println("serial: commands: help, diag, dump, save, nap [ms], tap A|B|C|AC|AB|BC|ABC [ms]");
 }
 
 uint8_t parseMask(const char* token) {
@@ -57,8 +58,28 @@ void handleLine(char* line) {
     return;
   }
 
+  if (strcmp(command, "diag") == 0) {
+    tamaStoragePrintDiagnostics();
+    powerManagerPrintDiagnostics();
+    return;
+  }
+
   if (strcmp(command, "save") == 0) {
     Serial.printf("serial: save %s\n", tamaStorageSave() ? "ok" : "failed");
+    return;
+  }
+
+  if (strcmp(command, "nap") == 0 || strcmp(command, "sleep") == 0) {
+    const char* duration_token = strtok(nullptr, " \t");
+    uint32_t duration_ms = 10000;
+    if (duration_token != nullptr) {
+      duration_ms = strtoul(duration_token, nullptr, 10);
+      if (duration_ms == 0) {
+        duration_ms = 10000;
+      }
+    }
+    const bool woke_by_button = powerManagerRunLowPowerTest(duration_ms);
+    Serial.printf("serial: nap done wake_by_button=%d\n", woke_by_button ? 1 : 0);
     return;
   }
 
