@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-002` 的 idle deep sleep 链保留；`phase3-lowpower-003` 中为误判 B 键加入的特殊长脉冲已判定不必要，已清理为 `phase3-lowpower-004`。当前修正为 `phase3-lowpower-005`：检测 USB/VBUS 外部供电时禁止自动 true deep sleep，只保留显示待机，避免 ESP32 deep sleep RTC 漂移导致宠物时间变慢。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-003` 中为误判 B 键加入的特殊长脉冲已判定不必要，已清理为 `phase3-lowpower-004`。当前修正为 `phase3-lowpower-006`：自动 true deep sleep 已关闭，电池和 USB 场景都只进入显示待机，避免 ESP32 deep sleep RTC 漂移导致宠物时间变慢。
 
 已完成：
 
@@ -18,7 +18,7 @@
 
 下一步：
 
-- 已烧录并验证 `phase3-lowpower-005`：USB/外部供电时不进入自动 true deep sleep；电池供电时仍保留分段 deep sleep 省电策略
+- 已烧录并验证 `phase3-lowpower-006`：自动 true deep sleep 关闭；电池和 USB 都只做降亮/显示待机，时间准确优先
 - 后续若继续判断菜单可用性，优先先确认 ROM 是否处于睡眠/不可照顾状态
 - 功耗主线稳定后再回到小智/agent 实验分支
 
@@ -36,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 修正插 USB/外部供电时自动 deep sleep 导致的宠物时钟变慢 |
-| 状态 | 已编译、已烧录，串口 `diag` 确认 `vbus=5098`、`external=1` |
-| 验收标准 | 外部供电时只进入显示待机、不进入自动 true deep sleep；电池供电时仍保留 deep sleep；`diag` 输出 VBUS/charging/external 诊断；编译、烧录和串口启动验证通过 |
+| 任务 | 关闭自动 true deep sleep，改为时间准确优先 |
+| 状态 | 已编译、已烧录，串口 `diag` 确认 `auto_sleep=0` |
+| 验收标准 | 电池和 USB 场景都不会自动进入 true deep sleep；显示待机仍可关闭背光；串口 `nap` 手动诊断保留；`diag` 输出 `auto_sleep=0`；编译、烧录和串口启动验证通过 |
 
 ## 里程碑进度
 
@@ -47,7 +47,7 @@
 | 阶段 0：项目基线 | 已完成 | 计划、进度、git 基线完成 |
 | 阶段 1：硬件验证 | 已完成 | 屏幕/按钮/喇叭/IMU 可用 |
 | 阶段 2：TamaLIB 移植 | 已完成到带本地 ROM 可交付状态 | TamaLIB 可编译、可烧录；ROM 本地接入；S3 HAL 已实现；本地 P1 ROM 固件启动成功 |
-| 阶段 3：存档和功耗 | 已完成到可交付状态 | 重启可恢复 LittleFS 存档；亮度/音量 NVS 持久化；4 档音量含静音；状态栏档位；空闲降亮；关灯黑房间；竖屏菜单图标；显示睡眠；低电压/睡眠前尽力保存 |
+| 阶段 3：存档和功耗 | 已完成到可交付状态 | 重启可恢复 LittleFS 存档；亮度/音量 NVS 持久化；4 档音量含静音；状态栏档位；空闲降亮；关灯黑房间；竖屏菜单图标；显示待机；自动 true deep sleep 关闭；低电压/睡眠前尽力保存 |
 | 阶段 4：小智语音与模型替换实验 | 未开始 | 独立分支验证小智语音链路、模型后端替换和 agent 能力边界 |
 | 阶段 5：AI 回接 Tamagotchi 主线 | 未开始 | 将验证过的 overlay/语音/动作桥接能力低风险接回主线 |
 | 阶段 6：可选扩展 | 未开始 | Buddy/日记/自定义角色等 |
@@ -86,6 +86,7 @@
 | 2026-05-02 | Git push 暂时卡在未配置远端 | `git remote -v` 为空，本地提交可继续维护；需要远端仓库 URL 后才能 `git remote add origin ...` 并 push |
 | 2026-05-02 | 音量档位加入静音 | 最低非零音量在休眠/夜间仍会叫；用户需要一个真正全关的声音档位 |
 | 2026-05-05 | USB/外部供电时不进入自动 true deep sleep | 用户插电约 3 小时后发现宠物时钟慢约 15 分钟；ESP32 deep sleep 使用 RTC slow clock，定时唤醒不适合作为精确实时时钟。插电时应优先保持 TamaLIB 实时运行，deep sleep 留给电池省电场景 |
+| 2026-05-05 | 关闭自动 true deep sleep | 电池供电下 deep sleep 仍可能因 RTC slow clock 漂移导致时间不准，且实测续航没有达到过夜目标；当前产品策略改为时间准确优先，显示待机保留，true deep sleep 仅保留为串口 `nap` 手动诊断 |
 
 ## 进度日志
 
@@ -202,6 +203,8 @@
 | 2026-05-05 | 发现 | 用户反馈设备一直插电、约 3 小时无操作后，宠物时钟比真实时间慢约 15 分钟；判断自动 deep sleep 链把 ESP32 RTC slow clock 定时当作精确实时时钟使用，导致累计漂移 | 本次提交 |
 | 2026-05-05 | 修正 | `phase3-lowpower-005`：新增带缓存的 VBUS/charging 外部供电检测；外部供电时跳过夜间/idle 自动 true deep sleep 和 auto-chain 续睡，只保留显示待机；`diag` 增加 `vbus`、`battery`、`level`、`charging`、`external` | 本次提交 |
 | 2026-05-05 | 验证 | `phase3-lowpower-005` 编译通过，Flash 使用约 614237 bytes，RAM 使用约 25324 bytes；已成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-lowpower-005`，并返回 `vbus=5098`、`external=1` | 本次提交 |
+| 2026-05-05 | 修正 | `phase3-lowpower-006`：关闭所有自动 true deep sleep 入口；显示待机后不再按夜间/idle 条件进入 deep sleep；旧 auto-chain pending 在唤醒补偿后会被清掉并回到显示活动状态；串口 `nap` 手动诊断仍保留 | 本次提交 |
+| 2026-05-05 | 验证 | `phase3-lowpower-006` 编译通过，Flash 使用约 613957 bytes，RAM 使用约 25316 bytes；已成功烧录到 `COM4`，串口 `diag` 确认 `auto_sleep=0`、`pending=0`、`vbus=5078` | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -219,7 +222,7 @@
 
 - `src/tama_storage.*`：LittleFS 存档/恢复，保存 TamaLIB CPU/RAM/timer/interruption 快照
 - `src/settings.*`：NVS 亮度、音量、idle 阈值配置
-- `src/power_manager.*`：idle 降亮、暗屏夜间亮度、黑屏待机、外部供电检测、电池供电下的 idle/夜间分段 deep sleep、自动睡眠链、唤醒补偿、按键唤醒、低电压/睡眠前保存入口
+- `src/power_manager.*`：idle 降亮、暗屏夜间亮度、黑屏待机、外部供电诊断、自动 true deep sleep 关闭、串口 `nap` 手动睡眠诊断、唤醒补偿、按键唤醒、低电压/睡眠前保存入口
 - `src/system_led.*`：黑屏待机时保持 Stick S3 绿色系统 LED 可见；真实低功耗 sleep 前关闭，唤醒后恢复
 - `src/serial_console.*`：USB 调试命令，可注入原版 A/B/C/组合键、打印帧、手动保存、查看诊断、触发短睡眠测试
 - `src/tama_frame.h`：共享 Tama 32x16 帧统计和关灯房间识别阈值，避免显示与功耗判断分叉
@@ -228,7 +231,7 @@
 - `src/main.cpp`：接入设置快捷键、功耗更新和 deep sleep 恢复路径；按键唤醒不再吞掉当前短按
 - `src/tama_app.cpp`：接入存档恢复、输入后 dirty 标记、idle 保存和快速补跑
 - `src/audio.cpp`：音量 `0` 时停止 speaker，boot/按键音不发声
-- `include/pins.h`：固件版本更新为 `phase3-lowpower-005`
+- `include/pins.h`：固件版本更新为 `phase3-lowpower-006`
 
 阶段 3 当前操作：
 
@@ -263,7 +266,7 @@ Git push 状态：
 
 - 启动日志出现 `tamalib: initialized with local ROM`
 - 启动日志出现 `storage: restored 648 bytes`
-- 当前已烧录 `phase3-lowpower-005`，插 USB/外部供电时 `diag` 显示 `external=1`
+- 当前已烧录 `phase3-lowpower-006`，策略为自动 true deep sleep 关闭；`diag` 显示 `auto_sleep=0`
 - 空闲约 30 秒后出现 `power: display idle brightness`
 - P1 关灯后的全亮矩阵显示为黑房间，不再是整块绿色
 - `key1 -> key2` 仍然是原版 C/退出，`key2 -> key1` 是原版 A+C/SET

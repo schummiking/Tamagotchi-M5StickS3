@@ -14,16 +14,13 @@
 
 namespace {
 constexpr uint32_t kLowBatteryCheckIntervalMs = 30000;
-constexpr uint32_t kPowerSourceCheckIntervalMs = 5000;
 constexpr uint32_t kLightOffDimDelayMs = 1200;
 constexpr uint32_t kDarkScreenSleepDelayMs = 60000;
-constexpr uint32_t kNightLowPowerDelayMs = 180000;
 constexpr uint32_t kIdleDisplaySleepDelayMs = 600000;
-constexpr uint32_t kIdleLowPowerDelayMs = 180000;
 constexpr int16_t kLowBatteryVoltageMv = 3450;
 constexpr int16_t kExternalPowerVoltageMv = 4400;
 constexpr int32_t kCriticalBatteryLevel = 5;
-constexpr uint64_t kLowPowerChunkUs = 10ULL * 60ULL * 1000ULL * 1000ULL;
+constexpr bool kAutomaticLowPowerSleepEnabled = false;
 constexpr uint32_t kMinTestSleepMs = 1000;
 constexpr uint32_t kMaxTestSleepMs = 120000;
 constexpr uint32_t kSleepMagic = 0x53504C54;  // TLPS
@@ -49,27 +46,11 @@ bool g_night_dimmed = false;
 bool g_display_sleeping = false;
 bool g_low_battery_latched = false;
 bool g_resume_low_power_soon = false;
-bool g_external_power_present = false;
 uint32_t g_last_battery_check_ms = 0;
-uint32_t g_last_power_source_check_ms = 0;
 uint32_t g_screen_dark_since_ms = 0;
 
 bool externalPowerFromReadings(int16_t vbus_mv, m5::Power_Class::is_charging_t charging) {
   return vbus_mv >= kExternalPowerVoltageMv || charging == m5::Power_Class::is_charging;
-}
-
-bool readExternalPowerPresent() {
-  return externalPowerFromReadings(M5.Power.getVBUSVoltage(), M5.Power.isCharging());
-}
-
-bool isExternalPowerPresent() {
-  const uint32_t now = millis();
-  if (g_last_power_source_check_ms == 0 ||
-      now - g_last_power_source_check_ms >= kPowerSourceCheckIntervalMs) {
-    g_external_power_present = readExternalPowerPresent();
-    g_last_power_source_check_ms = now;
-  }
-  return g_external_power_present;
 }
 
 void writeSleepJournal(uint32_t sleep_ms, bool chain_after_wake) {
@@ -165,12 +146,7 @@ void enterDisplaySleep(const char* reason) {
   Serial.printf("power: display standby (%s)\n", reason);
 }
 
-bool isWakeButtonPressed() {
-  return gpio_get_level(kWakeKey1) == 0 || gpio_get_level(kWakeKey2) == 0;
-}
-
-void enterLowPowerSleepChunk(const char* reason, uint64_t chunk_us = kLowPowerChunkUs,
-                             bool chain_after_wake = true) {
+void enterLowPowerSleepChunk(const char* reason, uint64_t chunk_us, bool chain_after_wake) {
   Serial.printf("power: low power sleep prepare (%s)\n", reason);
   tamaStorageSave();
   audioStop();
@@ -202,9 +178,7 @@ void powerManagerInit() {
   g_display_sleeping = false;
   g_low_battery_latched = false;
   g_resume_low_power_soon = false;
-  g_external_power_present = readExternalPowerPresent();
   g_last_battery_check_ms = 0;
-  g_last_power_source_check_ms = millis();
   g_screen_dark_since_ms = 0;
   systemLedInit();
   displaySetBrightness(settingsActiveBrightness());
@@ -230,7 +204,6 @@ void powerManagerPrepareForSleep() {
 
 bool powerManagerUpdate(bool any_pressed, uint32_t idle_age_ms, bool game_screen_dark) {
   checkLowBattery();
-  const bool external_power = isExternalPowerPresent();
 
   if (any_pressed) {
     g_screen_dark_since_ms = 0;
@@ -246,23 +219,11 @@ bool powerManagerUpdate(bool any_pressed, uint32_t idle_age_ms, bool game_screen
 
   if (g_resume_low_power_soon) {
     g_resume_low_power_soon = false;
-    if (external_power) {
-      powerManagerWake();
-      Serial.println("power: auto-chain skipped on external power");
-    } else {
-      enterLowPowerSleepChunk("auto-chain");
-    }
+    powerManagerWake();
+    Serial.println("power: auto-chain disabled");
   }
 
   if (g_display_sleeping) {
-    if (!external_power && game_screen_dark && g_screen_dark_since_ms != 0 &&
-        now - g_screen_dark_since_ms >= kNightLowPowerDelayMs) {
-      enterLowPowerSleepChunk("night");
-    }
-    if (!external_power && !game_screen_dark &&
-        idle_age_ms >= kIdleDisplaySleepDelayMs + kIdleLowPowerDelayMs) {
-      enterLowPowerSleepChunk("idle");
-    }
     return false;
   }
 
@@ -354,10 +315,11 @@ bool powerManagerHandleWakeCatchup() {
   const uint32_t advanced_ms = tamaAppFastForward(pending_ms);
   writeCatchupDiagnostics(advanced_ms, wake_cause, pending_seq);
   tamaStorageSave();
-  g_resume_low_power_soon = pending_chain;
-  if (!pending_chain) {
-    powerManagerWake();
+  g_resume_low_power_soon = false;
+  if (pending_chain) {
+    Serial.println("power: auto-chain disabled after catchup");
   }
+  powerManagerWake();
   return true;
 }
 
@@ -396,9 +358,10 @@ void powerManagerPrintDiagnostics() {
   const int32_t battery_level = M5.Power.getBatteryLevel();
   const auto charging = M5.Power.isCharging();
   const bool external = externalPowerFromReadings(vbus_mv, charging);
-  Serial.printf("power: diag display_sleep=%d dimmed=%d pending=%d pending_ms=%lu pending_seq=%lu pending_chain=%d last_catchup_ms=%lu last_wake=%lu last_seq=%lu vbus=%d battery=%d level=%ld charging=%d external=%d\n",
+  Serial.printf("power: diag display_sleep=%d dimmed=%d auto_sleep=%d pending=%d pending_ms=%lu pending_seq=%lu pending_chain=%d last_catchup_ms=%lu last_wake=%lu last_seq=%lu vbus=%d battery=%d level=%ld charging=%d external=%d\n",
                 g_display_sleeping ? 1 : 0, powerManagerIsDimmed() ? 1 : 0,
-                pending ? 1 : 0, static_cast<unsigned long>(pending_ms),
+                kAutomaticLowPowerSleepEnabled ? 1 : 0, pending ? 1 : 0,
+                static_cast<unsigned long>(pending_ms),
                 static_cast<unsigned long>(pending_seq), pending_chain ? 1 : 0,
                 static_cast<unsigned long>(last_catchup_ms),
                 static_cast<unsigned long>(last_wake),
