@@ -7,7 +7,8 @@
 
 namespace {
 constexpr uint32_t kHoldThresholdMs = 650;
-constexpr uint32_t kTamaPulseMs = 160;
+constexpr uint32_t kTamaNavPulseMs = 220;
+constexpr uint32_t kTamaConfirmPulseMs = 520;
 
 ButtonEvent g_last_event = ButtonEvent::None;
 uint32_t g_last_event_ms = 0;
@@ -62,9 +63,9 @@ bool timeReached(uint32_t deadline_ms) {
   return static_cast<int32_t>(millis() - deadline_ms) >= 0;
 }
 
-void emitTamaPulse(uint8_t mask) {
+void emitTamaPulse(uint8_t mask, uint32_t duration_ms) {
   g_tama_pulse_mask = mask;
-  g_tama_pulse_until_ms = millis() + kTamaPulseMs;
+  g_tama_pulse_until_ms = millis() + duration_ms;
   g_tama_mask = mask;
 }
 
@@ -96,12 +97,12 @@ void refreshTamaMask(bool key1, bool key2) {
 }
 
 void publishReleasedKey(ButtonEvent click_event, ButtonEvent hold_event, uint8_t tama_mask,
-                        uint32_t down_ms) {
+                        uint32_t down_ms, uint32_t pulse_ms) {
   if (millis() - down_ms >= kHoldThresholdMs) {
     publish(hold_event);
   } else {
     publish(click_event);
-    emitTamaPulse(tama_mask);
+    emitTamaPulse(tama_mask, pulse_ms);
   }
 }
 }  // namespace
@@ -177,10 +178,12 @@ void buttonsUpdate() {
     }
   } else {
     if (!key1 && g_last_key1) {
-      publishReleasedKey(ButtonEvent::A, ButtonEvent::Menu, kTamaButtonA, g_key1_down_ms);
+      publishReleasedKey(ButtonEvent::A, ButtonEvent::Menu, kTamaButtonA, g_key1_down_ms,
+                         kTamaNavPulseMs);
     }
     if (!key2 && g_last_key2) {
-      publishReleasedKey(ButtonEvent::B, ButtonEvent::AiWake, kTamaButtonB, g_key2_down_ms);
+      publishReleasedKey(ButtonEvent::B, ButtonEvent::AiWake, kTamaButtonB, g_key2_down_ms,
+                         kTamaConfirmPulseMs);
     }
     refreshTamaMask(key1, key2);
   }
@@ -220,7 +223,8 @@ uint8_t buttonsTamaMask() {
 
 bool buttonsIsAnyPressed() {
   refreshInjectedMask();
-  return g_injected_mask != 0 || M5.BtnA.isPressed() || M5.BtnB.isPressed();
+  return g_injected_mask != 0 || g_tama_pulse_mask != 0 || M5.BtnA.isPressed() ||
+         M5.BtnB.isPressed();
 }
 
 ButtonEvent buttonsLastEvent() {

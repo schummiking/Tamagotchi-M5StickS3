@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-001` 经隔夜实测发现两个回归：普通 idle 待机未进入长期 deep sleep，且按键唤醒会吞掉本次 B 短按；`phase3-lowpower-002` 已完成修复、编译、烧录和短 deep sleep 验证，等待用户实测 B 键菜单确认与隔夜续航。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-001` 经隔夜实测发现普通 idle 待机未进入长期 deep sleep；`phase3-lowpower-002` 修复睡眠链但用户确认 B 短按仍无法选中菜单，当前继续修复 B 输入时序为 `phase3-lowpower-003`。
 
 已完成：
 
@@ -36,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 修复 `phase3-lowpower-001` 回归：普通 idle 不续睡导致耗电，以及 B 短按被唤醒逻辑吞掉 |
-| 状态 | 已编译、已烧录，短 deep sleep 验证通过；待用户实测 B 键和隔夜电量 |
-| 验收标准 | 普通 idle 显示待机后也会进入 deep sleep；自动 deep sleep 定时唤醒后会补偿时间并继续 deep sleep；串口 `nap` 测试不会自动续睡，方便诊断；按键唤醒不再 suppress 当前短按，`key2` 短按能作为原版 B 进入菜单；编译和烧录通过 |
+| 任务 | 修复 B 短按无法确认菜单，并保留 `phase3-lowpower-002` 的 idle deep sleep 链 |
+| 状态 | 已编译、已烧录，待用户实测实体 `key2` |
+| 验收标准 | `key2` 短按能作为原版 B 进入/确认菜单；短按 B 的 ROM 脉冲长于 A/C 导航脉冲；普通 idle 显示待机后仍会进入 deep sleep 自动链；编译和烧录通过 |
 
 ## 里程碑进度
 
@@ -190,6 +190,9 @@
 | 2026-05-04 | 验证 | `phase3-lowpower-002` 编译通过，Flash 使用约 613385 bytes，RAM 使用约 25324 bytes | 本次提交 |
 | 2026-05-04 | 验证 | `phase3-lowpower-002` 成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-lowpower-002` | 本次提交 |
 | 2026-05-04 | 验证 | 串口执行 `nap 5000`：进入 deep sleep 前显示 `chain=0`，醒来后 `diag` 显示 `last_catchup_ms=5000`、`last_wake=4`、`pending_chain=0`，确认测试睡眠不会自动续睡且 5 秒补偿仍生效 | 本次提交 |
+| 2026-05-04 | 发现 | 用户实测 `phase3-lowpower-002` 中 `key2` 短按依然无法选中菜单，例如 A 切到 CLEAN 后 B 不能进入；串口 `tap B 500` 可走 ROM B 输入层，判断物理短按生成的 B 脉冲仍不够可靠 | 本次提交 |
+| 2026-05-04 | 修正 | `phase3-lowpower-003` 将短按脉冲拆分：A/C 导航 220ms，B 确认 520ms；串口 `tap` 默认也改为 520ms；合成脉冲期间计入按键活动，避免功耗管理打断输入 | 本次提交 |
+| 2026-05-04 | 验证 | `phase3-lowpower-003` 编译通过，Flash 使用约 613405 bytes，RAM 使用约 25324 bytes；已成功烧录到 `COM4`，串口 `diag` 正常响应 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -251,7 +254,7 @@ Git push 状态：
 
 - 启动日志出现 `tamalib: initialized with local ROM`
 - 启动日志出现 `storage: restored 648 bytes`
-- 当前已烧录 `phase3-lowpower-002`，等待用户实测 B 键菜单确认和隔夜续航
+- 当前已烧录 `phase3-lowpower-003`，等待用户实测实体 `key2` 是否能确认菜单
 - 空闲约 30 秒后出现 `power: display idle brightness`
 - P1 关灯后的全亮矩阵显示为黑房间，不再是整块绿色
 - `key1 -> key2` 仍然是原版 C/退出，`key2 -> key1` 是原版 A+C/SET
