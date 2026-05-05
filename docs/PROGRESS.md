@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-002` 的 idle deep sleep 链保留；`phase3-lowpower-003` 中为误判 B 键加入的特殊长脉冲已判定不必要，当前清理为 `phase3-lowpower-004`。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-002` 的 idle deep sleep 链保留；`phase3-lowpower-003` 中为误判 B 键加入的特殊长脉冲已判定不必要，当前已清理为 `phase3-lowpower-004`，并额外删除了无人调用的按键 suppress 遗留入口。
 
 已完成：
 
@@ -18,7 +18,7 @@
 
 下一步：
 
-- 烧录并验证 `phase3-lowpower-004` 清理版：保留 idle deep sleep 链，移除 B 特殊长脉冲实验代码
+- 已烧录并验证 `phase3-lowpower-004` 清理版：保留 idle deep sleep 链，移除 B 特殊长脉冲实验代码和无人调用的 suppress 遗留入口
 - 后续若继续判断菜单可用性，优先先确认 ROM 是否处于睡眠/不可照顾状态
 - 功耗主线稳定后再回到小智/agent 实验分支
 
@@ -36,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 清理误判 B 键后引入的特殊长脉冲代码，并保留真实功耗修复 |
+| 任务 | 审计并清理误判 B 键后引入的实验代码，保留真实功耗修复 |
 | 状态 | 已编译、已烧录，串口 `diag` 正常响应 |
-| 验收标准 | 移除 B 专用 520ms 脉冲和相关文档；按钮短按回到统一脉冲；idle deep sleep 自动链不回滚；编译、烧录和串口启动验证通过 |
+| 验收标准 | 移除 B 专用 520ms 脉冲、串口默认 520ms tap 和无人调用的按键 suppress 入口；按钮短按回到统一脉冲；idle deep sleep 自动链不回滚；编译、烧录和串口启动验证通过 |
 
 ## 里程碑进度
 
@@ -196,6 +196,8 @@
 | 2026-05-04 | 复盘 | 用户确认只有 LIGHT 和 STAT 可用，FOOD/CLEAN 等不可用；串口 dump 显示当前画面处于睡眠/打呼状态，符合原版 P1 睡眠时只能操作灯和状态的行为，B 键方向属于误判 | 本次提交 |
 | 2026-05-04 | 清理 | 移除 `phase3-lowpower-003` 的 B 专用 520ms 长脉冲和串口默认 520ms tap；按钮短按回到统一 160ms 脉冲，保留 `phase3-lowpower-002` 的 idle deep sleep 链 | 本次提交 |
 | 2026-05-04 | 验证 | `phase3-lowpower-004` 编译通过，Flash 使用约 613385 bytes，RAM 使用约 25324 bytes；已成功烧录到 `COM4`，串口 `diag` 正常响应 | 本次提交 |
+| 2026-05-04 | 清理 | 删除无人调用的 `buttonsSuppressUntilRelease()` 和 `g_suppress_until_release` 分支，按钮层不再保留“唤醒吞按键”的旧入口；`buttonsIsAnyPressed()` 也不再把短脉冲误当成物理按住 | 本次提交 |
+| 2026-05-04 | 验证 | 清理后的 `phase3-lowpower-004` 重新编译通过，Flash 使用约 613313 bytes，RAM 使用约 25316 bytes；已重新烧录到 `COM4`，串口返回 `boot ok: M5StickS3 phase3-lowpower-004` 和 `diag` | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -257,7 +259,7 @@ Git push 状态：
 
 - 启动日志出现 `tamalib: initialized with local ROM`
 - 启动日志出现 `storage: restored 648 bytes`
-- 当前已烧录 `phase3-lowpower-004` 清理版
+- 当前已烧录 `phase3-lowpower-004` 清理版，且已移除 B 长脉冲实验和 suppress 死代码
 - 空闲约 30 秒后出现 `power: display idle brightness`
 - P1 关灯后的全亮矩阵显示为黑房间，不再是整块绿色
 - `key1 -> key2` 仍然是原版 C/退出，`key2 -> key1` 是原版 A+C/SET
