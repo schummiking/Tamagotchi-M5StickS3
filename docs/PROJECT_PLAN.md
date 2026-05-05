@@ -134,7 +134,7 @@ IMU 互动后置：
 - 顶部状态栏显示亮度/音量档位，不再显示瞬时蜂鸣 `sound:on/off`；音量包含静音档，`0` 档会静音 boot 音、按键音和 ROM 蜂鸣
 - `src/tama_storage.*` 用 LittleFS 保存/恢复 TamaLIB CPU/RAM/timer/interrupt 快照
 - `src/settings.*` 用 NVS 保存亮度、音量和 idle 阈值
-- `src/power_manager.*` 实现 idle 降亮、暗屏夜间亮度、显示待机、idle/夜间分段 deep sleep、唤醒后快速补偿 TamaLIB 时间、自动睡眠链、按键活动恢复亮度、低电压/睡眠前尽力保存
+- `src/power_manager.*` 实现 idle 降亮、暗屏夜间亮度、显示待机、外部供电检测、电池供电下的 idle/夜间分段 deep sleep、唤醒后快速补偿 TamaLIB 时间、自动睡眠链、按键活动恢复亮度、低电压/睡眠前尽力保存
 - `key1` 短按松开触发 A，`key2` 短按松开触发 B；组合键按下顺序会区分语义：`key1 -> key2` 触发 C/退出，`key2 -> key1` 触发原版 A+C/SET，避免组合键误触 A/B
 - `key1` 长按松开循环亮度，`key2` 长按松开循环音量
 - `key1 -> key2` 保持原版 C/退出，不复用为睡眠入口；`key2 -> key1` 用于原版 A+C，例如时钟页进入 SET
@@ -144,7 +144,7 @@ IMU 互动后置：
 
 - ROM 仍然只保存在用户本地 ignored 文件里，不随仓库分发
 - `power` 仍作为系统键，不作为应用输入；sleep 前保存通过统一 flush 入口预留给后续电源流程
-- 黑屏待机会保留绿色 LED，提示设备仍在运行；真实低功耗 sleep 才关闭 LED。idle 或夜间自动进入 deep sleep 后，定时唤醒补偿时间并自动续睡；按键唤醒则回到可操作状态
+- 黑屏待机会保留绿色 LED，提示设备仍在运行；真实低功耗 sleep 才关闭 LED。USB/VBUS 外部供电时不进入自动 true deep sleep，保证桌面常插电场景下 TamaLIB 实时运行；电池供电时 idle 或夜间可自动进入分段 deep sleep，定时唤醒补偿时间并自动续睡；按键唤醒则回到可操作状态
 - 手动 `power` 硬关机仍无法准确知道离线 elapsed；当前通过周期 checkpoint 降低丢档风险，准确硬关机补偿需后续联网/NTP 或额外 RTC
 - 阶段 3 暂不解析内部宠物状态
 - 阶段 3 暂不包含 AI 对话，阶段 4 改为小智/agent 实验线
@@ -196,7 +196,7 @@ IMU 互动后置：
 - LittleFS 保存/恢复 TamaLIB 状态
 - idle 保存、sleep 前保存、低电压保存
 - 基础亮度/音量设置
-- 无操作降亮度或关屏；普通 idle 待机和宠物关灯黑房间都可以进入真实低功耗 deep sleep，显示待机时保留绿色 LED
+- 无操作降亮度或关屏；外部供电时只进入显示待机，电池供电时普通 idle 待机和宠物关灯黑房间都可以进入真实低功耗 deep sleep，显示待机时保留绿色 LED
 - 关灯房间识别需要覆盖打呼动画：房间背景反色为黑，打呼/动画保留为绿色，并继续触发夜间降亮和显示睡眠
 - 夜间黑房间或普通 idle 待机持续一段时间后进入分段 deep sleep；进入真实低功耗前保存状态、关闭绿色 LED，定时唤醒后快速补跑睡眠时间，自动睡眠链会继续回到 deep sleep
 - 串口临时诊断支持 `diag` 和 `nap [ms]`，用于查看存档/功耗状态和短睡眠补偿测试；稳定后可隐藏
