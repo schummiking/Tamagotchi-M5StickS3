@@ -135,7 +135,7 @@ IMU 互动后置：
 - `src/tama_storage.*` 用 LittleFS 保存/恢复 TamaLIB CPU/RAM/timer/interrupt 快照
 - `src/settings.*` 用 NVS 保存亮度、音量和 idle 阈值
 - `src/power_manager.*` 实现 idle 降亮、暗屏夜间亮度、显示待机、idle/夜间分段 deep sleep、唤醒后快速补偿 TamaLIB 时间、自动睡眠链、按键活动恢复亮度、低电压/睡眠前尽力保存
-- `key1` 短按松开触发 A，`key2` 短按松开触发 B；B 确认使用比 A/C 更长的合成 ROM 脉冲，避免菜单确认漏判；组合键按下顺序会区分语义：`key1 -> key2` 触发 C/退出，`key2 -> key1` 触发原版 A+C/SET，避免组合键误触 A/B
+- `key1` 短按松开触发 A，`key2` 短按松开触发 B；组合键按下顺序会区分语义：`key1 -> key2` 触发 C/退出，`key2 -> key1` 触发原版 A+C/SET，避免组合键误触 A/B
 - `key1` 长按松开循环亮度，`key2` 长按松开循环音量
 - `key1 -> key2` 保持原版 C/退出，不复用为睡眠入口；`key2 -> key1` 用于原版 A+C，例如时钟页进入 SET
 - M5Unified fallback board 固定为 `board_M5StickS3`，避免自动识别异常时影响 I2C/IMU

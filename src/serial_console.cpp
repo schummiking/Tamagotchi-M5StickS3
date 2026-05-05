@@ -10,7 +10,7 @@
 #include "tama_storage.h"
 
 namespace {
-constexpr uint32_t kDefaultTapMs = 520;
+constexpr uint32_t kDefaultTapMs = 120;
 char g_line[80] = {};
 uint8_t g_line_len = 0;
 
