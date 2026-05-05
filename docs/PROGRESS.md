@@ -6,6 +6,8 @@
 
 项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-003` 中为误判 B 键加入的特殊长脉冲已判定不必要，已清理为 `phase3-lowpower-004`。当前修正为 `phase3-lowpower-006`：自动 true deep sleep 已关闭，电池和 USB 场景都只进入显示待机，避免 ESP32 deep sleep RTC 漂移导致宠物时间变慢。
 
+当前工作已从 `main` 切到实验分支 `codex/network-time-catchup`：只规划和验证联网校时补偿，不直接污染主线。
+
 已完成：
 
 - 用 Kiro CLI + `claude-opus-4.6` 讨论总体开发方案
@@ -20,7 +22,7 @@
 
 - 已烧录并验证 `phase3-lowpower-006`：自动 true deep sleep 关闭；电池和 USB 都只做降亮/显示待机，时间准确优先
 - 后续若继续判断菜单可用性，优先先确认 ROM 是否处于睡眠/不可照顾状态
-- 功耗主线稳定后再回到小智/agent 实验分支
+- 联网校时补偿先在 `codex/network-time-catchup` 分支推进，稳定后再评估是否拆模块回接 `main`
 
 ## 进度维护规则
 
@@ -36,9 +38,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 关闭自动 true deep sleep，改为时间准确优先 |
-| 状态 | 已编译、已烧录，串口 `diag` 确认 `auto_sleep=0` |
-| 验收标准 | 电池和 USB 场景都不会自动进入 true deep sleep；显示待机仍可关闭背光；串口 `nap` 手动诊断保留；`diag` 输出 `auto_sleep=0`；编译、烧录和串口启动验证通过 |
+| 任务 | 在独立分支规划联网校时补偿 |
+| 状态 | 已创建分支 `codex/network-time-catchup`，正在维护文档计划 |
+| 验收标准 | 明确该功能不进 `main`；记录 NTP 与 ROM 时钟 modulo 24h 补偿策略；定义模块、串口命令、实施顺序和验收标准 |
 
 ## 里程碑进度
 
@@ -87,6 +89,8 @@
 | 2026-05-02 | 音量档位加入静音 | 最低非零音量在休眠/夜间仍会叫；用户需要一个真正全关的声音档位 |
 | 2026-05-05 | USB/外部供电时不进入自动 true deep sleep | 用户插电约 3 小时后发现宠物时钟慢约 15 分钟；ESP32 deep sleep 使用 RTC slow clock，定时唤醒不适合作为精确实时时钟。插电时应优先保持 TamaLIB 实时运行，deep sleep 留给电池省电场景 |
 | 2026-05-05 | 关闭自动 true deep sleep | 电池供电下 deep sleep 仍可能因 RTC slow clock 漂移导致时间不准，且实测续航没有达到过夜目标；当前产品策略改为时间准确优先，显示待机保留，true deep sleep 仅保留为串口 `nap` 手动诊断 |
+| 2026-05-05 | 联网校时补偿走独立分支 | 该功能涉及 Wi-Fi、NTP、ROM 时钟读取和补偿策略，已脱离当前 `main` 的稳定可玩主线；先在 `codex/network-time-catchup` 中验证 |
+| 2026-05-05 | 补偿采用 ROM 时钟与 NTP 的一天内正向差值 | 原版 P1 时钟只有小时、分钟和 AM/PM，没有日期；超过 24 小时天然无法识别。保留这个限制可以避免多日离线后一联网直接把宠物推死 |
 
 ## 进度日志
 
@@ -205,6 +209,8 @@
 | 2026-05-05 | 验证 | `phase3-lowpower-005` 编译通过，Flash 使用约 614237 bytes，RAM 使用约 25324 bytes；已成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-lowpower-005`，并返回 `vbus=5098`、`external=1` | 本次提交 |
 | 2026-05-05 | 修正 | `phase3-lowpower-006`：关闭所有自动 true deep sleep 入口；显示待机后不再按夜间/idle 条件进入 deep sleep；旧 auto-chain pending 在唤醒补偿后会被清掉并回到显示活动状态；串口 `nap` 手动诊断仍保留 | 本次提交 |
 | 2026-05-05 | 验证 | `phase3-lowpower-006` 编译通过，Flash 使用约 613957 bytes，RAM 使用约 25316 bytes；已成功烧录到 `COM4`，串口 `diag` 确认 `auto_sleep=0`、`pending=0`、`vbus=5078` | 本次提交 |
+| 2026-05-05 | 分支 | 从 `main` 创建 `codex/network-time-catchup`，用于联网校时补偿实验；`main` 保持 `phase3-lowpower-006` 稳定可玩基线 | 本次提交 |
+| 2026-05-05 | 规划 | 将联网校时补偿写入项目计划：NTP 只提供真实时间，补偿通过 ROM 当前时钟与真实时间的 `0..24h` 正向差值调用 `tamaAppFastForward()`，不直接改宠物状态 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -298,3 +304,33 @@ Git push 状态：
 - 输出可替换模型方案，优先考虑兼容 OpenAI/Gemini/本地网关的抽象层
 - 输出 agent 边界：可观察什么、能调用哪些动作、哪些动作需要用户确认
 - 所有 secrets、Wi-Fi、API Key、ROM 继续不提交
+
+### 实验分支：联网校时补偿
+
+当前分支：`codex/network-time-catchup`
+
+该分支不直接改 `main`。目标是在硬关机、没电、刷机回来或离线启动后联网时，让 ROM 当前时钟追到真实本地时间的一天内位置，再由原版 ROM 自己推进游戏逻辑。
+
+核心策略：
+
+- 读取 NTP 本地时间，得到 `real_minutes`。
+- 读取 ROM 当前小时/分钟/AMPM，得到 `rom_minutes`。
+- 计算 `delta_minutes = (real_minutes - rom_minutes + 1440) % 1440`。
+- 只补一天内正向差值，不识别完整天数。
+- 调用 `tamaAppFastForward(delta_ms)`，不直接写 ROM 内部宠物状态。
+- 初期先做串口 `catchup preview/apply`，稳定后再考虑启动自动补偿。
+
+计划命令：
+
+- `time diag`
+- `time sync`
+- `clock read`
+- `catchup preview`
+- `catchup apply`
+
+计划文件：
+
+- `src/network_time.*`
+- `src/rom_clock.*`
+- `src/time_catchup.*`
+- `src/time_journal.*`
