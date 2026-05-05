@@ -10,8 +10,8 @@ M5StickS3 上的桌面/随身电子宠物项目。当前版本使用 TamaLIB 运
 
 - 阶段 1：硬件验证已完成，屏幕、`key1`、`key2`、喇叭、IMU 均可用。
 - 阶段 2：TamaLIB 已移植到 M5StickS3，本地 P1 ROM 固件可编译、烧录、启动。
-- 阶段 3：已完成 LittleFS 存档、NVS 配置、4 档音量含静音、亮度调节、空闲降亮、关灯黑房间、显示待机、夜间分段 deep sleep 和唤醒后时间补偿。
-- 当前固件版本：`phase3-lowpower-001`。
+- 阶段 3：已完成 LittleFS 存档、NVS 配置、4 档音量含静音、亮度调节、空闲降亮、关灯黑房间、显示待机、idle/夜间分段 deep sleep 和唤醒后时间补偿。
+- 当前固件版本：`phase3-lowpower-002`。
 - 下一阶段：在独立分支探索小智语音路线、可替换更强模型的接口，以及轻量 agent 能力。
 
 ## 硬件
@@ -118,8 +118,8 @@ A desktop / pocket virtual pet project for the M5StickS3. The current firmware r
 
 - Phase 1: Hardware validation is complete. Display, `key1`, `key2`, speaker, and IMU are working.
 - Phase 2: TamaLIB is ported to M5StickS3. The local P1 ROM firmware builds, flashes, and boots.
-- Phase 3: LittleFS save / restore, NVS settings, 4-level volume including mute, brightness control, idle dimming, dark-room rendering, display standby, segmented night deep sleep, and wake catch-up are implemented.
-- Current firmware version: `phase3-lowpower-001`.
+- Phase 3: LittleFS save / restore, NVS settings, 4-level volume including mute, brightness control, idle dimming, dark-room rendering, display standby, segmented idle/night deep sleep, and wake catch-up are implemented.
+- Current firmware version: `phase3-lowpower-002`.
 - Next phase: explore the XiaoZhi voice path, stronger replaceable model backends, and lightweight agent behavior on a separate branch.
 
 ## Hardware

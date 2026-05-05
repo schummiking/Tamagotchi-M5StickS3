@@ -7,7 +7,7 @@
 
 namespace {
 constexpr uint32_t kHoldThresholdMs = 650;
-constexpr uint32_t kTamaPulseMs = 90;
+constexpr uint32_t kTamaPulseMs = 160;
 
 ButtonEvent g_last_event = ButtonEvent::None;
 uint32_t g_last_event_ms = 0;

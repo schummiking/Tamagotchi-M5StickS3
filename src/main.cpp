@@ -53,16 +53,16 @@ void setup() {
   powerManagerInit();
   imuSmokeInit();
   tamaAppInit();
+  const bool recovered_sleep = powerManagerHandleWakeCatchup();
   tamaStoragePrintDiagnostics();
   powerManagerPrintDiagnostics();
 
   Serial.printf("boot ok: %s %s\n", board::kName, board::kFirmwareVersion);
-  audioPlayBootTone();
-  tamaAppUpdate(imuSmokeSample());
-  if (powerManagerHandleWakeCatchup()) {
-    displayInvalidateTamaFrame();
-    tamaAppUpdate(imuSmokeSample());
+  if (!recovered_sleep) {
+    audioPlayBootTone();
   }
+  displayInvalidateTamaFrame();
+  tamaAppUpdate(imuSmokeSample());
 }
 
 void loop() {
@@ -74,7 +74,6 @@ void loop() {
 
   tamaAppUpdate(imuSmokeSample());
   if (powerManagerUpdate(buttonsIsAnyPressed(), buttonsLastActivityAgeMs(), tamaAppIsScreenDark())) {
-    buttonsSuppressUntilRelease();
     displayInvalidateTamaFrame();
   }
   delay(tamaAppIsRunning() ? 1 : 10);

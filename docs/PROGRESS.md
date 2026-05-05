@@ -1,10 +1,10 @@
 # 开发进度
 
-更新时间：2026-05-03
+更新时间：2026-05-04
 
 ## 当前状态
 
-项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。主线功耗修复已完成并烧录验证：黑屏待机保留绿色 LED，真实低功耗使用分段 deep sleep，定时唤醒后补跑 TamaLIB 时间。
+项目已完成阶段 3 到可交付状态：带本地 P1 ROM 的固件可启动、可恢复 LittleFS 存档、可从 NVS 恢复亮度/音量配置，空闲 30 秒后会降低屏幕亮度。`phase3-lowpower-001` 经隔夜实测发现两个回归：普通 idle 待机未进入长期 deep sleep，且按键唤醒会吞掉本次 B 短按；`phase3-lowpower-002` 已完成修复、编译、烧录和短 deep sleep 验证，等待用户实测 B 键菜单确认与隔夜续航。
 
 已完成：
 
@@ -18,8 +18,8 @@
 
 下一步：
 
-- 优先修复主线功耗：黑屏待机保留绿灯、夜间进入真实低功耗 deep sleep、周期 checkpoint、启动恢复诊断
-- 实机验证短睡眠唤醒、时间补偿和电量行为
+- 修复并验证 `phase3-lowpower-002`：普通 idle 待机进入自动 deep sleep 链，定时唤醒后自动续睡；按键唤醒不再吞掉本次短按 B
+- 实机验证 B 短按菜单确认、短 deep sleep 唤醒补偿和自动续睡诊断
 - 功耗主线稳定后再回到小智/agent 实验分支
 
 ## 进度维护规则
@@ -36,9 +36,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 任务 | 主线功耗修复：区分黑屏待机和真实低功耗睡眠 |
-| 状态 | 已完成，已编译、烧录并通过短 deep sleep 实机验证 |
-| 验收标准 | 黑屏待机时绿色 LED 保留；夜间/关灯后进入 ESP deep sleep 分段低功耗；每段唤醒后快速补偿 TamaLIB 时间；周期 checkpoint 降低硬关机丢档风险；启动/恢复诊断可通过串口看到；编译、烧录、短睡眠实机验证通过 |
+| 任务 | 修复 `phase3-lowpower-001` 回归：普通 idle 不续睡导致耗电，以及 B 短按被唤醒逻辑吞掉 |
+| 状态 | 已编译、已烧录，短 deep sleep 验证通过；待用户实测 B 键和隔夜电量 |
+| 验收标准 | 普通 idle 显示待机后也会进入 deep sleep；自动 deep sleep 定时唤醒后会补偿时间并继续 deep sleep；串口 `nap` 测试不会自动续睡，方便诊断；按键唤醒不再 suppress 当前短按，`key2` 短按能作为原版 B 进入菜单；编译和烧录通过 |
 
 ## 里程碑进度
 
@@ -183,6 +183,13 @@
 | 2026-05-04 | 验证 | `platformio run` 编译通过，Flash 使用约 613157 bytes，RAM 使用约 25324 bytes | 本次提交 |
 | 2026-05-04 | 验证 | 修正版成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-lowpower-001` | 本次提交 |
 | 2026-05-04 | 验证 | 串口执行 `nap 5000`：进入 deep sleep 前保存并关闭 PM1 LED，重启后日志显示 `catchup requested=5000ms` / `advanced=5000ms`，`diag` 显示 `last_catchup_ms=5000`、`last_wake=4`、`last_seq=1`，确认定时唤醒和 5 秒补偿生效 | 本次提交 |
+| 2026-05-04 | 发现 | 用户隔夜实测 `phase3-lowpower-001` 电池仍约 1 小时耗尽，第二天只推进约 1.5 小时；定位为普通 idle 显示待机未进入 true deep sleep，且自动唤醒后只有黑房间才续睡 | 本次提交 |
+| 2026-05-04 | 发现 | 用户反馈 `key2` 短按无法进入菜单；定位为显示降亮/待机唤醒路径会调用按键 suppress，导致本次短按释放事件不再传给 ROM | 本次提交 |
+| 2026-05-04 | 修正 | `phase3-lowpower-002`：idle 显示待机 3 分钟后进入自动 deep sleep 链；定时唤醒补偿后根据 sleep journal 的 chain 标记自动续睡；串口 `nap` 保持不续睡以便调试 | 本次提交 |
+| 2026-05-04 | 修正 | 移除按键唤醒后的 suppress 行为，并将短按注入脉冲从 90ms 提高到 160ms，避免 B 短按在唤醒/菜单确认时被吞 | 本次提交 |
+| 2026-05-04 | 验证 | `phase3-lowpower-002` 编译通过，Flash 使用约 613385 bytes，RAM 使用约 25324 bytes | 本次提交 |
+| 2026-05-04 | 验证 | `phase3-lowpower-002` 成功烧录到 `COM4`，串口确认 `boot ok: M5StickS3 phase3-lowpower-002` | 本次提交 |
+| 2026-05-04 | 验证 | 串口执行 `nap 5000`：进入 deep sleep 前显示 `chain=0`，醒来后 `diag` 显示 `last_catchup_ms=5000`、`last_wake=4`、`pending_chain=0`，确认测试睡眠不会自动续睡且 5 秒补偿仍生效 | 本次提交 |
 
 ## 阶段 2 交付物
 
@@ -200,16 +207,16 @@
 
 - `src/tama_storage.*`：LittleFS 存档/恢复，保存 TamaLIB CPU/RAM/timer/interruption 快照
 - `src/settings.*`：NVS 亮度、音量、idle 阈值配置
-- `src/power_manager.*`：idle 降亮、暗屏夜间亮度、黑屏待机、夜间分段 deep sleep、唤醒补偿、按键唤醒、低电压/睡眠前保存入口
+- `src/power_manager.*`：idle 降亮、暗屏夜间亮度、黑屏待机、idle/夜间分段 deep sleep、自动睡眠链、唤醒补偿、按键唤醒、低电压/睡眠前保存入口
 - `src/system_led.*`：黑屏待机时保持 Stick S3 绿色系统 LED 可见；真实低功耗 sleep 前关闭，唤醒后恢复
 - `src/serial_console.*`：USB 调试命令，可注入原版 A/B/C/组合键、打印帧、手动保存、查看诊断、触发短睡眠测试
 - `src/tama_frame.h`：共享 Tama 32x16 帧统计和关灯房间识别阈值，避免显示与功耗判断分叉
 - `src/buttons.*`：顺序组合键，`key1 -> key2` 为 C/退出，`key2 -> key1` 为 A+C/SET
 - `src/display.cpp`：竖屏运行界面显示原版 8 菜单图标、选中项提示、亮度/音量档位状态栏
-- `src/main.cpp`：接入设置快捷键和功耗更新
+- `src/main.cpp`：接入设置快捷键、功耗更新和 deep sleep 恢复路径；按键唤醒不再吞掉当前短按
 - `src/tama_app.cpp`：接入存档恢复、输入后 dirty 标记、idle 保存和快速补跑
 - `src/audio.cpp`：音量 `0` 时停止 speaker，boot/按键音不发声
-- `include/pins.h`：固件版本更新为 `phase3-lowpower-001`
+- `include/pins.h`：固件版本更新为 `phase3-lowpower-002`
 
 阶段 3 当前操作：
 
@@ -244,7 +251,7 @@ Git push 状态：
 
 - 启动日志出现 `tamalib: initialized with local ROM`
 - 启动日志出现 `storage: restored 648 bytes`
-- 当前已烧录 `phase3-lowpower-001`，串口调试命令有响应
+- 当前已烧录 `phase3-lowpower-002`，等待用户实测 B 键菜单确认和隔夜续航
 - 空闲约 30 秒后出现 `power: display idle brightness`
 - P1 关灯后的全亮矩阵显示为黑房间，不再是整块绿色
 - `key1 -> key2` 仍然是原版 C/退出，`key2 -> key1` 是原版 A+C/SET

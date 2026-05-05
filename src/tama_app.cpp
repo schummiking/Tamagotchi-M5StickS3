@@ -33,7 +33,7 @@ constexpr uint32_t kStepBudgetUs = 7000;
 constexpr uint16_t kMaxStepsPerLoop = 512;
 constexpr uint32_t kTamaTickFrequency = 32768;
 constexpr uint32_t kMaxCatchupElapsedMs = 10UL * 60UL * 1000UL;
-constexpr uint32_t kMaxCatchupWallMs = 15000;
+constexpr uint32_t kMaxCatchupWallMs = 35000;
 
 bool g_pixels[kLcdHeight][kLcdWidth] = {};
 bool g_icons[kIconCount] = {};
